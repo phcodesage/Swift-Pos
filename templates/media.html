@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex flex-col gap-4 min-h-[calc(100vh-6rem)] lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden pb-10 lg:pb-0">
+    
+    <!-- Page Header (Fixed) -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <i data-lucide="image" class="w-8 h-8 text-primary"></i> Media Directory
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500">Upload new brand files, manage catalog graphics, and clean up unused assets.</p>
+        </div>
+    </div>
+
+    <!-- Layout Grid: Left (Uploader) and Right (Gallery grid) -->
+    <div class="flex-1 flex flex-col md:flex-row gap-5 overflow-hidden">
+        
+        <!-- Left: Upload Box -->
+        <div class="w-full md:w-80 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col shrink-0">
+            <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+                <i data-lucide="upload-cloud" class="w-4.5 h-4.5 text-indigo-600"></i> Upload Brand Photos
+            </h3>
+            
+            <div id="dragDropArea" class="flex-1 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-primary transition-all cursor-pointer flex flex-col items-center justify-center min-h-[200px] md:min-h-0 bg-slate-50/50">
+                <div class="w-12 h-12 bg-indigo-50 text-primary rounded-full flex items-center justify-center mb-3">
+                    <i data-lucide="image" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-slate-700 text-xs">Drag files here</h4>
+                <p class="text-[10px] text-slate-400 mt-1">PNG, JPG, WEBP formats only</p>
+                <div class="mt-4">
+                    <input type="file" id="mediaFileInput" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                    <button type="button" onclick="document.getElementById('mediaFileInput').click()" class="px-3.5 py-2 bg-white border border-slate-300 text-slate-700 text-[11px] font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-colors">
+                        Select File
+                    </button>
+                </div>
+            </div>
+            <div id="uploadStatus" class="mt-3 text-center text-xs font-bold text-indigo-600 hidden">Uploading...</div>
+        </div>
+
+        <!-- Right: Gallery Grid -->
+        <div class="flex-1 bg-white rounded-2xl border border-slate-100 shadow-md flex flex-col overflow-hidden">
+            
+            <!-- Filter Bar -->
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-4 shrink-0">
+                <div class="relative flex-1 max-w-md">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </div>
+                    <input type="text" id="mediaSearchInput" onkeyup="filterMediaGallery()" class="pl-9 w-full rounded-xl border-slate-200 bg-white border py-2 text-xs font-semibold" placeholder="Filter files by name...">
+                </div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest shrink-0" id="mediaCount">0 files</span>
+            </div>
+
+            <!-- Visual Grid of Assets (Scrolls) -->
+            <div class="flex-1 overflow-y-auto p-4 min-h-0 bg-slate-50/30">
+                <div id="mediaGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Full Size Image Preview Modal -->
+<div id="previewModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col" id="previewModalContent">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800 truncate" id="previewModalTitle">Image Preview</h3>
+            <button onclick="closePreviewModal()" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6 bg-slate-50 flex items-center justify-center aspect-square overflow-hidden">
+            <img id="previewModalImage" src="" alt="Preview" class="max-w-full max-h-full object-contain rounded-2xl shadow border border-slate-200">
+        </div>
+        <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
+            <button onclick="closePreviewModal()" class="flex-1 py-2.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xl shadow-sm">Close</button>
+            <button onclick="deleteSelectedMedia()" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Delete Permanently
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let activePreviewSrc = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMediaGallery();
+        setupDragDrop();
+    });
+
+    async function loadMediaGallery() {
+        const grid = document.getElementById('mediaGrid');
+        grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-primary mb-2"></i> Loading directory...</div>';
+        lucide.createIcons();
+
+        try {
+            const res = await fetch('/api/media');
+            const files = await res.json();
+            grid.innerHTML = '';
+            
+            document.getElementById('mediaCount').textContent = `${files.length} files`;
+
+            if (files.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400"><i data-lucide="image-off" class="w-10 h-10 mx-auto mb-3 text-slate-300"></i> No files uploaded yet.</div>';
+                lucide.createIcons();
+                return;
+            }
+
+            files.forEach(src => {
+                const basename = src.substring(src.lastIndexOf('/') + 1);
+                const item = document.createElement('div');
+                item.className = 'group bg-white border border-slate-200 hover:border-primary rounded-2xl overflow-hidden cursor-pointer relative shadow-sm hover:shadow-md transition-all duration-200 select-none';
+                item.dataset.src = src;
+                item.dataset.name = basename;
+                
+                item.addEventListener('click', () => {
+                    openPreviewModal(src, basename);
+                });
+
+                item.innerHTML = `
+                    <div class="aspect-square bg-slate-100 overflow-hidden relative">
+                        <img src="${src}" alt="${basename}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-2 border-t border-slate-100 bg-white">
+                        <p class="text-[10px] font-bold text-slate-700 truncate leading-tight text-center">${basename}</p>
+                    </div>
+                `;
+                grid.appendChild(item);
+            });
+        } catch (e) {
+            grid.innerHTML = '<div class="col-span-full text-center py-10 text-rose-500">Error loading files.</div>';
+        }
+    }
+
+    function filterMediaGallery() {
+        const query = document.getElementById('mediaSearchInput').value.toLowerCase();
+        let visibleCount = 0;
+        document.querySelectorAll('#mediaGrid > div').forEach(el => {
+            const name = el.dataset.name.toLowerCase();
+            if (name.includes(query)) {
+                el.style.display = '';
+                visibleCount++;
+            } else {
+                el.style.display = 'none';
+            }
+        });
+        document.getElementById('mediaCount').textContent = `${visibleCount} files matching`;
+    }
+
+    function openPreviewModal(src, name) {
+        activePreviewSrc = src;
+        document.getElementById('previewModalTitle').textContent = name;
+        document.getElementById('previewModalImage').src = src;
+        
+        const modal = document.getElementById('previewModal');
+        const content = document.getElementById('previewModalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closePreviewModal() {
+        playAudio('click');
+        const modal = document.getElementById('previewModal');
+        const content = document.getElementById('previewModalContent');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            activePreviewSrc = null;
+        }, 200);
+    }
+
+    async function deleteSelectedMedia() {
+        if (!activePreviewSrc) return;
+        
+        const filename = activePreviewSrc.substring(activePreviewSrc.lastIndexOf('/') + 1);
+        if (!confirm(`Delete "${filename}" permanently? This cannot be undone.`)) return;
+
+        try {
+            const res = await fetch('/api/media/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ src: activePreviewSrc })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                playAudio('delete');
+                closePreviewModal();
+                await loadMediaGallery();
+            } else {
+                alert(data.message || 'Error deleting file.');
+            }
+        } catch (e) {
+            alert('Connection error.');
+        }
+    }
+
+    // --- Media Upload Logic ---
+    async function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            await uploadFile(file);
+        }
+    }
+
+    async function uploadFile(file) {
+        const status = document.getElementById('uploadStatus');
+        status.classList.remove('hidden');
+        status.textContent = 'Uploading...';
+        status.className = 'mt-3 text-center text-xs font-bold text-indigo-600';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('/api/media/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                playAudio('success');
+                status.textContent = 'Successfully uploaded!';
+                status.className = 'mt-3 text-center text-xs font-bold text-emerald-600';
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                }, 3000);
+                await loadMediaGallery();
+            } else {
+                status.textContent = `Error: ${data.message}`;
+                status.className = 'mt-3 text-center text-xs font-bold text-rose-600';
+            }
+        } catch (e) {
+            status.textContent = 'Upload connection error.';
+            status.className = 'mt-3 text-center text-xs font-bold text-rose-600';
+        }
+    }
+
+    function setupDragDrop() {
+        const dropArea = document.getElementById('dragDropArea');
+        if (!dropArea) return;
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('border-primary', 'bg-indigo-50/10'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('border-primary', 'bg-indigo-50/10'), false);
+        });
+        
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,62 +1,71 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-6">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+<div class="flex flex-col gap-4 min-h-[calc(100vh-6rem)] lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden pb-10 lg:pb-0">
+    
+    <!-- Header Block (Fixed) -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Inventory Stocks</h1>
-            <p class="text-gray-500 mt-1">Manage your products and stock levels</p>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <i data-lucide="package" class="w-8 h-8 text-primary"></i> Inventory Stocks
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500">Add, edit, and audit your sari-sari store products and stock counts.</p>
         </div>
-        <button onclick="openModal('addModal')" class="flex items-center gap-2 bg-primary hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5">
-            <i data-lucide="plus" class="w-5 h-5"></i> Add Product
+        <button onclick="openModal('addModal')" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i> Add New Product
         </button>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
-            <div class="relative flex-1 max-w-md">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="search" class="text-gray-400 w-5 h-5"></i>
-                </div>
-                <input type="text" id="tableSearch" 
-                    class="pl-10 w-full rounded-xl border-gray-200 bg-white border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 transition-all text-sm"
-                    placeholder="Search inventory..." onkeyup="filterTable()">
+    <!-- Search & Filter Bar (Fixed) -->
+    <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
+        <div class="relative flex-1 w-full">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
             </div>
+            <input type="text" id="tableSearch" 
+                class="pl-10 w-full rounded-xl border-slate-200 bg-slate-50/80 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 text-sm transition-all"
+                placeholder="Search product name, category, or barcode..." onkeyup="filterTable()">
         </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left" id="stocksTable">
-                <thead class="text-xs text-gray-500 uppercase bg-gray-50/50">
+    </div>
+    
+    <!-- Table Container (Only this container scrolls) -->
+    <div class="flex-1 bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col">
+        <div class="flex-1 overflow-y-auto">
+            <table class="w-full text-sm text-left border-collapse" id="stocksTable">
+                <thead class="sticky top-0 bg-slate-50 border-b border-slate-100 z-10 shadow-sm">
                     <tr>
-                        <th class="px-6 py-4 font-medium">Product</th>
-                        <th class="px-6 py-4 font-medium">Category</th>
-                        <th class="px-6 py-4 font-medium">Capital</th>
-                        <th class="px-6 py-4 font-medium">Price</th>
-                        <th class="px-6 py-4 font-medium text-right">Stock</th>
-                        <th class="px-6 py-4 font-medium text-center">Actions</th>
+                        <th class="px-6 py-4 font-bold text-slate-600 text-xs uppercase tracking-wider">Product Info</th>
+                        <th class="px-6 py-4 font-bold text-slate-600 text-xs uppercase tracking-wider">Category</th>
+                        <th class="px-6 py-4 font-bold text-slate-600 text-xs uppercase tracking-wider">Capital Price</th>
+                        <th class="px-6 py-4 font-bold text-slate-600 text-xs uppercase tracking-wider">Selling Price</th>
+                        <th class="px-6 py-4 font-bold text-slate-600 text-xs uppercase tracking-wider text-right">Available Stock</th>
+                        <th class="px-6 py-4 font-bold text-slate-600 text-xs uppercase tracking-wider text-center">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-slate-100">
                     {% for p in products %}
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 font-medium text-gray-900 flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 font-bold">{{ p.name[0].upper() }}</div>
-                            <span class="product-name">{{ p.name }}</span>
+                    <tr class="hover:bg-indigo-50/20 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-800 flex items-center gap-3">
+                            <img src="{{ p.image_url or '/static/images/coca_cola.jpg' }}" alt="{{ p.name }}" class="w-11 h-11 object-cover rounded-xl border border-slate-200 shadow-sm shrink-0" onerror="this.onerror=null; this.src='/static/images/coca_cola.jpg'">
+                            <div>
+                                <span class="product-name block text-sm leading-tight">{{ p.name }}</span>
+                                <span class="text-[10px] text-slate-400 uppercase tracking-widest font-extrabold mt-0.5 block">ID: #{{ p.id }}</span>
+                            </div>
                         </td>
-                        <td class="px-6 py-4 text-gray-500">{{ p.category }}</td>
-                        <td class="px-6 py-4 text-gray-500">₱{{ "%.2f"|format(p.capital) }}</td>
-                        <td class="px-6 py-4 font-medium text-gray-700">₱{{ "%.2f"|format(p.price) }}</td>
+                        <td class="px-6 py-4 text-slate-500 font-medium">{{ p.category }}</td>
+                        <td class="px-6 py-4 text-slate-500 font-mono font-medium">₱{{ "%.2f"|format(p.capital) }}</td>
+                        <td class="px-6 py-4 font-bold text-indigo-600 font-mono">₱{{ "%.2f"|format(p.price) }}</td>
                         <td class="px-6 py-4 text-right">
-                            <span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold {{ 'bg-red-100 text-red-800' if p.stock <= 0 else 'bg-green-100 text-green-800' }}">
+                            <span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-black {{ 'bg-rose-100 text-rose-800' if p.stock <= 0 else 'bg-emerald-100 text-emerald-800' }}">
                                 {{ p.stock }} {{ p.unit }}
                             </span>
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-center gap-2">
-                                <button onclick='openEditModal({{ p.id }}, {{ p.name|tojson }}, {{ p.capital }}, {{ p.price }}, {{ p.stock }}, {{ p.category|tojson }}, {{ p.unit|tojson }})' class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                <button onclick='openEditModal({{ p.id }}, {{ p.name|tojson }}, {{ p.capital }}, {{ p.price }}, {{ p.stock }}, {{ p.category|tojson }}, {{ p.unit|tojson }}, {{ p.image_url|tojson }})' class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-95" title="Edit Product">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="openDeleteModal({{ p.id }}, {{ p.name|tojson }})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                                <button onclick="openDeleteModal({{ p.id }}, {{ p.name|tojson }})" class="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all active:scale-95" title="Delete Product">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -64,10 +73,11 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                            <div class="flex flex-col items-center justify-center">
-                                <i data-lucide="package-open" class="w-12 h-12 mb-4 text-gray-300"></i>
-                                <p>No products in inventory. Add one to get started.</p>
+                        <td colspan="6" class="px-6 py-16 text-center text-slate-400">
+                            <div class="flex flex-col items-center justify-center py-12">
+                                <i data-lucide="package-open" class="w-14 h-14 mb-4 text-slate-300"></i>
+                                <p class="text-sm font-semibold">No products in inventory.</p>
+                                <p class="text-xs text-slate-400 mt-1">Add items to start selling.</p>
                             </div>
                         </td>
                     </tr>
@@ -79,27 +89,40 @@
 </div>
 
 <!-- Modal Form Component (Used for Add and Edit) -->
-<div id="productModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="productModalContent">
-        <div class="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-            <h3 class="text-xl font-bold text-gray-800" id="modalTitle">Add Product</h3>
-            <button onclick="closeModal('productModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
-                <i data-lucide="x"></i>
+<div id="productModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="productModalContent">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Add Product</h3>
+            <button onclick="closeModal('productModal')" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
         <form method="POST" action="{{ url_for('stocks') }}" class="p-6 space-y-4">
             <input type="hidden" name="action" id="formAction" value="add">
             <input type="hidden" name="id" id="productId">
+            <input type="hidden" name="image_url" id="productImageUrl" value="">
             
+            <!-- WordPress-style Image Picker Section -->
+            <div class="flex gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-2">
+                <img id="formImagePreview" src="/static/images/coca_cola.jpg" alt="Preview" class="w-16 h-16 object-cover rounded-xl border border-slate-300 shadow-sm shrink-0" onerror="this.onerror=null; this.src='/static/images/coca_cola.jpg'">
+                <div class="flex-1">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Product Photo</label>
+                    <button type="button" onclick="openMediaLibrary()" class="px-4 py-2 bg-white border border-slate-300 hover:border-primary text-slate-700 hover:text-primary text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
+                        <i data-lucide="image" class="w-4 h-4"></i> Choose / Upload Image
+                    </button>
+                    <p class="text-[10px] text-slate-400 mt-1">Select from the local media gallery or upload a new brand image.</p>
+                </div>
+            </div>
+
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                <input type="text" name="name" id="productName" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Product Name</label>
+                <input type="text" name="name" id="productName" required class="w-full rounded-xl border-slate-300 bg-slate-50 border focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all text-sm font-semibold">
             </div>
             
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <input type="text" name="category" id="productCategory" list="categoryList" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all" placeholder="e.g. Grocery">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Category</label>
+                    <input type="text" name="category" id="productCategory" list="categoryList" required class="w-full rounded-xl border-slate-300 bg-slate-50 border focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all text-sm font-semibold" placeholder="e.g. Grocery">
                     <datalist id="categoryList">
                         {% for cat in categories %}
                         <option value="{{ cat }}">
@@ -107,8 +130,8 @@
                     </datalist>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                    <select name="unit" id="productUnit" class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all appearance-none">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Unit</label>
+                    <select name="unit" id="productUnit" class="w-full rounded-xl border-slate-300 bg-slate-50 border focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all text-sm font-semibold appearance-none">
                         <option value="pcs">Pieces (pcs)</option>
                         <option value="Kg">Kilograms (Kg)</option>
                     </select>
@@ -117,43 +140,118 @@
 
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Capital (₱)</label>
-                    <input type="number" step="0.01" name="capital" id="productCapital" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Capital (₱)</label>
+                    <input type="number" step="0.01" name="capital" id="productCapital" required class="w-full rounded-xl border-slate-300 bg-slate-50 border focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all text-sm font-semibold font-mono">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Selling Price (₱)</label>
-                    <input type="number" step="0.01" name="price" id="productPrice" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Selling Price (₱)</label>
+                    <input type="number" step="0.01" name="price" id="productPrice" required class="w-full rounded-xl border-slate-300 bg-slate-50 border focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all text-sm font-semibold font-mono">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
-                    <input type="number" step="0.01" name="stock" id="productStock" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Initial Stock</label>
+                    <input type="number" step="0.01" name="stock" id="productStock" required class="w-full rounded-xl border-slate-300 bg-slate-50 border focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all text-sm font-semibold">
                 </div>
             </div>
 
             <div class="pt-4 flex gap-3 mt-6">
-                <button type="button" onclick="closeModal('productModal')" class="flex-1 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancel</button>
-                <button type="submit" class="flex-1 py-3 rounded-xl shadow-md text-white font-bold bg-primary hover:bg-indigo-700 transition-all">Save Product</button>
+                <button type="button" onclick="closeModal('productModal')" class="flex-1 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors">Cancel</button>
+                <button type="submit" class="flex-1 py-3 rounded-xl shadow-md text-white font-bold text-xs bg-primary hover:bg-indigo-700 transition-all">Save Product</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="deleteModalContent">
+<div id="deleteModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="deleteModalContent">
         <div class="p-6 text-center pt-8">
-            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+            <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-600">
                 <i data-lucide="alert-triangle" class="w-8 h-8"></i>
             </div>
-            <h3 class="text-xl font-bold text-gray-800">Delete Product?</h3>
-            <p class="text-gray-500 mt-2 text-sm" id="deleteProductName">Are you sure you want to delete this product? This action cannot be undone.</p>
+            <h3 class="text-lg font-bold text-slate-800">Delete Product?</h3>
+            <p class="text-slate-500 mt-2 text-xs" id="deleteProductName">Are you sure you want to delete this product? This action cannot be undone.</p>
         </div>
-        <form method="POST" action="{{ url_for('stocks') }}" class="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+        <form method="POST" action="{{ url_for('stocks') }}" class="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id" id="deleteProductId">
-            <button type="button" onclick="closeModal('deleteModal')" class="flex-1 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancel</button>
-            <button type="submit" class="flex-1 py-3 rounded-xl shadow-md text-white font-bold bg-red-600 hover:bg-red-700 transition-all">Delete</button>
+            <button type="button" onclick="closeModal('deleteModal')" class="flex-1 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors">Cancel</button>
+            <button type="submit" class="flex-1 py-3 rounded-xl shadow-md text-white font-bold text-xs bg-rose-600 hover:bg-rose-700 transition-all">Delete</button>
         </form>
+    </div>
+</div>
+
+<!-- WordPress-style Media Library Modal -->
+<div id="mediaLibraryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl h-[85vh] overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col" id="mediaLibraryModalContent">
+        
+        <!-- Modal Header -->
+        <div class="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="image" class="w-5 h-5 text-indigo-600"></i> Media Library
+                </h3>
+                <p class="text-xs text-slate-500">WordPress-style media catalog & asset manager</p>
+            </div>
+            <button onclick="closeMediaLibrary()" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Tabs Switcher -->
+        <div class="px-5 border-b border-slate-100 flex gap-4 shrink-0 bg-white">
+            <button onclick="switchMediaTab('gallery')" id="tabBtn-gallery" class="py-3 text-sm font-bold border-b-2 border-primary text-primary transition-all">Media Gallery</button>
+            <button onclick="switchMediaTab('upload')" id="tabBtn-upload" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-all">Upload New File</button>
+        </div>
+
+        <!-- Modal Body Content Area -->
+        <div class="flex-1 overflow-hidden relative min-h-0 bg-slate-50 p-5">
+            
+            <!-- Gallery Panel -->
+            <div id="panel-gallery" class="h-full flex flex-col gap-4">
+                <div class="relative w-full shrink-0">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </div>
+                    <input type="text" id="mediaSearchInput" onkeyup="filterMediaGallery()" class="pl-9 w-full rounded-xl border-slate-200 bg-white border py-2 text-xs font-semibold" placeholder="Filter media by filename...">
+                </div>
+
+                <!-- Grid of Images -->
+                <div class="flex-1 overflow-y-auto min-h-0">
+                    <div id="mediaGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3.5">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Panel -->
+            <div id="panel-upload" class="hidden h-full flex flex-col items-center justify-center">
+                <div id="dragDropArea" class="w-full max-w-md border-2 border-dashed border-slate-300 rounded-3xl p-8 text-center bg-white hover:border-primary transition-all cursor-pointer">
+                    <div class="w-16 h-16 bg-indigo-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm">Drag and drop file here</h4>
+                    <p class="text-xs text-slate-400 mt-1">Supports PNG, JPG, JPEG, WEBP up to 5MB</p>
+                    <div class="mt-4">
+                        <input type="file" id="mediaFileInput" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                        <button type="button" onclick="document.getElementById('mediaFileInput').click()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all shadow-sm">
+                            Select Local File
+                        </button>
+                    </div>
+                </div>
+                <div id="uploadStatus" class="mt-4 text-xs font-bold text-emerald-600 hidden">Uploading...</div>
+            </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+            <span class="text-[11px] text-slate-400 font-bold" id="selectedMediaInfo">No file selected</span>
+            <div class="flex gap-2">
+                <button type="button" onclick="closeMediaLibrary()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-xl shadow-sm hover:bg-slate-50">Cancel</button>
+                <button type="button" onclick="selectChosenMedia()" id="confirmSelectMediaBtn" disabled class="px-5 py-2 bg-primary hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed">Select Image</button>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -161,6 +259,8 @@
 
 {% block scripts %}
 <script>
+    let selectedImageSrc = null;
+
     function filterTable() {
         const input = document.getElementById('tableSearch').value.toLowerCase();
         const rows = document.getElementById('stocksTable').getElementsByTagName('tbody')[0].getElementsByTagName('tr');
@@ -178,6 +278,14 @@
         }
     }
 
+    function updatePreviewImage(url) {
+        const preview = document.getElementById('formImagePreview');
+        if (preview) {
+            preview.src = url || '/static/images/coca_cola.jpg';
+        }
+        document.getElementById('productImageUrl').value = url || '';
+    }
+
     function openModal(id) {
         if(id === 'addModal') {
             document.getElementById('modalTitle').textContent = 'Add New Product';
@@ -189,6 +297,8 @@
             document.getElementById('productCapital').value = '';
             document.getElementById('productPrice').value = '';
             document.getElementById('productStock').value = '';
+            document.getElementById('productImageUrl').value = '';
+            updatePreviewImage('');
             id = 'productModal';
         }
         
@@ -208,10 +318,10 @@
         content.classList.add('scale-95', 'opacity-0');
         setTimeout(() => {
             modal.classList.add('hidden');
-        }, 300);
+        }, 200);
     }
 
-    function openEditModal(id, name, capital, price, stock, category, unit) {
+    function openEditModal(id, name, capital, price, stock, category, unit, imageUrl) {
         document.getElementById('modalTitle').textContent = 'Edit Product';
         document.getElementById('formAction').value = 'edit';
         document.getElementById('productId').value = id;
@@ -221,6 +331,8 @@
         document.getElementById('productCapital').value = capital;
         document.getElementById('productPrice').value = price;
         document.getElementById('productStock').value = stock;
+        document.getElementById('productImageUrl').value = imageUrl || '';
+        updatePreviewImage(imageUrl || '');
         
         openModal('productModal');
     }
@@ -230,5 +342,204 @@
         document.getElementById('deleteProductName').textContent = `Are you sure you want to delete "${name}"?`;
         openModal('deleteModal');
     }
+
+    // --- WordPress Media Library Logic ---
+    async function openMediaLibrary() {
+        playAudio('click');
+        selectedImageSrc = null;
+        document.getElementById('confirmSelectMediaBtn').disabled = true;
+        document.getElementById('selectedMediaInfo').textContent = 'No file selected';
+        
+        const modal = document.getElementById('mediaLibraryModal');
+        const content = document.getElementById('mediaLibraryModalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        await loadMediaGallery();
+    }
+
+    function closeMediaLibrary() {
+        playAudio('click');
+        const modal = document.getElementById('mediaLibraryModal');
+        const content = document.getElementById('mediaLibraryModalContent');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    function switchMediaTab(tab) {
+        playAudio('click');
+        const galleryBtn = document.getElementById('tabBtn-gallery');
+        const uploadBtn = document.getElementById('tabBtn-upload');
+        const galleryPanel = document.getElementById('panel-gallery');
+        const uploadPanel = document.getElementById('panel-upload');
+
+        if (tab === 'gallery') {
+            galleryBtn.className = "py-3 text-sm font-bold border-b-2 border-primary text-primary transition-all";
+            uploadBtn.className = "py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-all";
+            galleryPanel.classList.remove('hidden');
+            uploadPanel.classList.add('hidden');
+        } else {
+            uploadBtn.className = "py-3 text-sm font-bold border-b-2 border-primary text-primary transition-all";
+            galleryBtn.className = "py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-all";
+            uploadPanel.classList.remove('hidden');
+            galleryPanel.classList.add('hidden');
+        }
+    }
+
+    async function loadMediaGallery() {
+        const grid = document.getElementById('mediaGrid');
+        grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-primary mb-2"></i> Loading gallery...</div>';
+        lucide.createIcons();
+
+        try {
+            const res = await fetch('/api/media');
+            const files = await res.json();
+            grid.innerHTML = '';
+            
+            if (files.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">Gallery is empty. Upload some files first!</div>';
+                return;
+            }
+
+            files.forEach(src => {
+                const basename = src.substring(src.lastIndexOf('/') + 1);
+                const item = document.createElement('div');
+                item.className = 'group aspect-square bg-white border border-slate-200 hover:border-primary rounded-xl overflow-hidden cursor-pointer relative shadow-sm hover:shadow transition-all duration-200 select-none';
+                item.dataset.src = src;
+                item.dataset.name = basename;
+                
+                item.addEventListener('click', () => {
+                    selectGalleryItem(item, src, basename);
+                });
+
+                item.innerHTML = `
+                    <img src="${src}" alt="${basename}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <div class="absolute bottom-0 inset-x-0 bg-slate-950/70 text-[9px] font-medium text-white truncate p-1 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${basename}
+                    </div>
+                `;
+                grid.appendChild(item);
+            });
+        } catch (e) {
+            grid.innerHTML = '<div class="col-span-full text-center py-10 text-rose-500">Error loading library.</div>';
+        }
+    }
+
+    function selectGalleryItem(element, src, name) {
+        playAudio('click');
+        document.querySelectorAll('#mediaGrid > div').forEach(el => {
+            el.classList.remove('ring-4', 'ring-primary', 'border-primary');
+        });
+        
+        element.classList.add('ring-4', 'ring-primary', 'border-primary');
+        selectedImageSrc = src;
+        
+        document.getElementById('selectedMediaInfo').textContent = `Selected: ${name}`;
+        document.getElementById('confirmSelectMediaBtn').disabled = false;
+    }
+
+    function selectChosenMedia() {
+        if (selectedImageSrc) {
+            updatePreviewImage(selectedImageSrc);
+            closeMediaLibrary();
+        }
+    }
+
+    function filterMediaGallery() {
+        const query = document.getElementById('mediaSearchInput').value.toLowerCase();
+        document.querySelectorAll('#mediaGrid > div').forEach(el => {
+            const name = el.dataset.name.toLowerCase();
+            if (name.includes(query)) {
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        });
+    }
+
+    // --- Media Upload Logic ---
+    async function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            await uploadFile(file);
+        }
+    }
+
+    async function uploadFile(file) {
+        const status = document.getElementById('uploadStatus');
+        status.classList.remove('hidden');
+        status.textContent = 'Uploading file to SwiftPOS gallery...';
+        status.className = 'mt-4 text-xs font-bold text-indigo-600';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('/api/media/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                playAudio('success');
+                status.textContent = 'Upload successful!';
+                status.className = 'mt-4 text-xs font-bold text-emerald-600';
+                
+                // Refresh gallery grid and auto select the uploaded image
+                await loadMediaGallery();
+                
+                // Find and highlight newly uploaded item in grid
+                setTimeout(() => {
+                    const matchedItem = Array.from(document.querySelectorAll('#mediaGrid > div')).find(el => el.dataset.src === data.url);
+                    if (matchedItem) {
+                        selectGalleryItem(matchedItem, data.url, file.name);
+                    }
+                    switchMediaTab('gallery');
+                }, 300);
+            } else {
+                status.textContent = `Upload failed: ${data.message}`;
+                status.className = 'mt-4 text-xs font-bold text-rose-600';
+            }
+        } catch (e) {
+            status.textContent = 'Upload error.';
+            status.className = 'mt-4 text-xs font-bold text-rose-600';
+        }
+    }
+
+    // Setup drag & drop listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const dropArea = document.getElementById('dragDropArea');
+        if (dropArea) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, () => dropArea.classList.add('border-primary', 'bg-indigo-50/10'), false);
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, () => dropArea.classList.remove('border-primary', 'bg-indigo-50/10'), false);
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const file = dt.files[0];
+                if (file) {
+                    uploadFile(file);
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

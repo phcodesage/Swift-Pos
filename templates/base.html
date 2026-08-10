@@ -119,6 +119,10 @@
                 <i data-lucide="package" class="w-5 h-5"></i> Stocks & Products
             </a>
 
+            <a href="{{ url_for('media') }}" onclick="toggleMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all {{ 'bg-primary text-white font-semibold' if request.endpoint == 'media' else 'text-slate-300 hover:bg-slate-800' }}">
+                <i data-lucide="image" class="w-5 h-5"></i> Media Gallery
+            </a>
+
             <a href="{{ url_for('finance') }}" onclick="toggleMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all {{ 'bg-primary text-white font-semibold' if request.endpoint == 'finance' else 'text-slate-300 hover:bg-slate-800' }}">
                 <i data-lucide="piggy-bank" class="w-5 h-5"></i> Finance & Profit
             </a>
@@ -193,6 +197,10 @@
             
             <a href="{{ url_for('stocks') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 {{ 'bg-primary text-white shadow-lg shadow-indigo-600/30 font-semibold' if request.endpoint == 'stocks' else 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                 <i data-lucide="package" class="w-5 h-5"></i> Stocks & Products
+            </a>
+
+            <a href="{{ url_for('media') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 {{ 'bg-primary text-white shadow-lg shadow-indigo-600/30 font-semibold' if request.endpoint == 'media' else 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <i data-lucide="image" class="w-5 h-5"></i> Media Gallery
             </a>
 
             <a href="{{ url_for('finance') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 {{ 'bg-primary text-white shadow-lg shadow-indigo-600/30 font-semibold' if request.endpoint == 'finance' else 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">

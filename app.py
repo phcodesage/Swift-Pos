@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'swiftpos_philippines_secret_key_2026'
 
 # Use absolute path for SQLite database to ensure consistency across reloads
-basedir = os.path.abspath(os.path.dirname(__file__))
+basedir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 db_dir = os.path.join(basedir, 'instance')
 os.makedirs(db_dir, exist_ok=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(db_dir, "swiftpos.db")}'
@@ -20,6 +20,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# Self-healing database check: Auto-recreates tables if SQLite is empty or missing tables
+@app.before_request
+def ensure_database_is_healthy():
+    try:
+        # Check if the user table exists and query runs
+        db.session.query(User).first()
+    except Exception:
+        with app.app_context():
+            db.create_all()
+            seed_database()
 
 # Database Models
 class User(UserMixin, db.Model):
@@ -301,6 +312,73 @@ def api_products():
         'unit': p.unit,
         'image_url': p.image_url or '/static/images/coca_cola.jpg'
     } for p in products])
+
+@app.route('/api/media')
+@login_required
+def api_media():
+    images_dir = os.path.join(app.root_path, 'static', 'images')
+    if not os.path.exists(images_dir):
+        return jsonify([])
+    
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+    files = [
+        f'/static/images/{f}'
+        for f in os.listdir(images_dir)
+        if os.path.splitext(f.lower())[1] in allowed_extensions
+    ]
+    return jsonify(sorted(files))
+
+@app.route('/api/media/upload', methods=['POST'])
+@login_required
+def api_upload_media():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file uploaded'})
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Empty filename'})
+    
+    ext = os.path.splitext(file.filename.lower())[1]
+    if ext not in {'.jpg', '.jpeg', '.png', '.webp', '.gif'}:
+        return jsonify({'success': False, 'message': 'Invalid image format'})
+    
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(file.filename)
+    images_dir = os.path.join(app.root_path, 'static', 'images')
+    os.makedirs(images_dir, exist_ok=True)
+    
+    save_path = os.path.join(images_dir, filename)
+    file.save(save_path)
+    
+    return jsonify({'success': True, 'url': f'/static/images/{filename}'})
+
+@app.route('/api/media/delete', methods=['POST'])
+@login_required
+def api_delete_media():
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': 'Admin privilege required'}), 403
+    data = request.json or {}
+    src = data.get('src', '')
+    if not src or not src.startswith('/static/images/'):
+        return jsonify({'success': False, 'message': 'Invalid file path'})
+    
+    filename = os.path.basename(src)
+    file_path = os.path.join(app.root_path, 'static', 'images', filename)
+    
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)})
+    return jsonify({'success': False, 'message': 'File not found'})
+
+@app.route('/media')
+@login_required
+def media():
+    if current_user.role != 'admin':
+        flash('Access restricted to Admin users.', 'error')
+        return redirect(url_for('pos'))
+    return render_template('media.html')
 
 @app.route('/api/checkout', methods=['POST'])
 @login_required

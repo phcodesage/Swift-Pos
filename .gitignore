@@ -19,3 +19,4 @@ instance/
 
 # Vercel
 .vercel/
+.vercel

@@ -468,6 +468,13 @@
         updateProductBadges();
     }
 
+    function removeCartItem(id) {
+        playAudio('delete');
+        cart = cart.filter(i => Number(i.id) !== Number(id));
+        updateCartUI();
+        updateProductBadges();
+    }
+
     function updateCartUI() {
         const listContainer = document.getElementById('cartItemsList');
         const emptyMsg = document.getElementById('emptyCartMsg');
@@ -528,12 +535,15 @@
 
             el.innerHTML = `
                 <div class="flex justify-between items-start">
-                    <div>
+                    <div class="pr-4">
                         <h5 class="font-bold text-gray-800 text-xs">${item.name}</h5>
                         <p class="text-[10px] text-gray-500">₱${item.price.toFixed(2)} / ${item.unit}</p>
                         ${partialKgButtons}
                     </div>
-                    <div class="text-right">
+                    <div class="text-right flex flex-col items-end gap-1.5 shrink-0">
+                        <button onclick="removeCartItem(${item.id})" class="text-gray-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors" title="Remove Item">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
                         <span class="font-extrabold text-xs text-indigo-600">₱${itemSubtotal.toFixed(2)}</span>
                     </div>
                 </div>
@@ -566,6 +576,9 @@
         if (lastElementToScroll) {
             lastElementToScroll.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+        
+        // Render newly added Lucide Trash icons
+        lucide.createIcons();
     }
 
     function scrollToCart() {
