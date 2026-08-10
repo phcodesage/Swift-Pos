@@ -245,6 +245,56 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        curr = request.form.get('current_password')
+        new_pw = request.form.get('new_password')
+        conf = request.form.get('confirm_password')
+        
+        if not check_password_hash(current_user.password, curr):
+            flash('Current password is incorrect.', 'error')
+        elif len(new_pw) < 6:
+            flash('New password must be at least 6 characters.', 'error')
+        elif new_pw != conf:
+            flash('Passwords do not match.', 'error')
+        else:
+            current_user.password = generate_password_hash(new_pw)
+            db.session.commit()
+            flash('Password updated successfully!', 'success')
+            return redirect(url_for('index'))
+            
+    return render_template('change_password.html')
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        pin = request.form.get('recovery_pin')
+        new_pw = request.form.get('new_password')
+        conf = request.form.get('confirm_password')
+        
+        # Default Store Recovery PIN is 9999
+        if pin != '9999':
+            flash('Invalid Store Recovery PIN.', 'error')
+        elif len(new_pw) < 6:
+            flash('New password must be at least 6 characters.', 'error')
+        elif new_pw != conf:
+            flash('Passwords do not match.', 'error')
+        else:
+            user = User.query.filter_by(username=username).first()
+            if user:
+                user.password = generate_password_hash(new_pw)
+                db.session.commit()
+                flash('Password reset successfully! Please sign in.', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash('User not found in system.', 'error')
+                
+    return render_template('forgot_password.html')
+
+
 @app.route('/dashboard')
 @login_required
 def dashboard():

@@ -273,5 +273,48 @@ class SwiftPOSTestCase(unittest.TestCase):
         self.assertEqual(res.mimetype, 'text/csv')
         self.assertIn(b'Receipt ID,Date,Cashier', res.data)
 
+    # 9. Test Change Password Flow
+    def test_change_password(self):
+        self.login('cashier', 'cashier123')
+        res = self.client.post('/change-password', data={
+            'current_password': 'cashier123',
+            'new_password': 'newpassword123',
+            'confirm_password': 'newpassword123'
+        }, follow_redirects=True)
+        self.assertIn(b'Password updated successfully', res.data)
+
+        # Verify old password no longer works
+        self.logout()
+        res = self.login('cashier', 'cashier123')
+        self.assertIn(b'Invalid username or password', res.data)
+
+        # Verify new password works
+        res = self.login('cashier', 'newpassword123')
+        self.assertIn(b'Current Sales Cart', res.data)
+
+    # 10. Test Forgot Password Recovery Flow
+    def test_forgot_password(self):
+        # Trigger forgot password with incorrect store recovery pin -> failure
+        res = self.client.post('/forgot-password', data={
+            'username': 'admin',
+            'recovery_pin': 'wrong_pin',
+            'new_password': 'recovered123',
+            'confirm_password': 'recovered123'
+        }, follow_redirects=True)
+        self.assertIn(b'Invalid Store Recovery PIN', res.data)
+
+        # Trigger reset with correct recovery pin (9999) -> success
+        res = self.client.post('/forgot-password', data={
+            'username': 'admin',
+            'recovery_pin': '9999',
+            'new_password': 'recovered123',
+            'confirm_password': 'recovered123'
+        }, follow_redirects=True)
+        self.assertIn(b'Password reset successfully', res.data)
+
+        # Verify recovered password works on login
+        res = self.login('admin', 'recovered123')
+        self.assertIn(b'Dashboard', res.data)
+
 if __name__ == '__main__':
     unittest.main()
