@@ -271,13 +271,32 @@ def dashboard():
     unpaid_utang = db.session.query(db.func.sum(Transaction.total_amount - Transaction.paid_amount))\
                             .filter(Transaction.payment_type == 'utang', Transaction.is_paid == False).scalar() or 0.0
 
+    # Get daily sales for the last 7 days
+    from datetime import datetime as dt, timedelta
+    today = dt.now().date()
+    sales_trend = []
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        day_start = dt.combine(d, dt.min.time())
+        day_end = dt.combine(d, dt.max.time())
+        day_total = db.session.query(db.func.sum(Transaction.total_amount))\
+                              .filter(Transaction.is_paid == True, 
+                                      Transaction.date_created >= day_start,
+                                      Transaction.date_created <= day_end).scalar() or 0.0
+        sales_trend.append({
+            'day': d.strftime('%a'),
+            'total': float(day_total)
+        })
+
     return render_template('dashboard.html', 
                            total_sales=total_sales, 
                            total_transactions=total_transactions, 
                            net_profit=net_profit,
                            total_expenses=total_expenses,
                            unpaid_utang=unpaid_utang,
-                           low_stock_items=low_stock_items)
+                           low_stock_items=low_stock_items,
+                           sales_trend=sales_trend)
+
 
 @app.route('/pos')
 @login_required

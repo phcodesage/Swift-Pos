@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SwiftPOS - Sari-Sari Store & Grocery POS</title>
+    <!-- Premium font configuration -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui'],
+                    },
                     colors: {
                         primary: '#4f46e5',
                         secondary: '#0f172a',
@@ -20,6 +27,10 @@
         }
     </script>
     <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
         .glass {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
@@ -45,7 +56,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans min-h-screen lg:h-screen flex flex-col lg:flex-row overflow-x-hidden lg:overflow-hidden">
+<body class="bg-[#f8fafc] text-slate-800 font-sans min-h-screen lg:h-screen flex flex-col lg:flex-row overflow-x-hidden lg:overflow-hidden">
     
     {% if current_user.is_authenticated %}
     <!-- Mobile Top Header Bar -->
@@ -56,7 +67,7 @@
             </div>
             <div>
                 <h1 class="text-base font-bold tracking-wider text-white">SwiftPOS</h1>
-                <p class="text-[9px] text-indigo-400 font-semibold uppercase tracking-widest">Sari-Sari Store</p>
+                <p class="text-[9px] text-indigo-400 font-semibold uppercase tracking-widest leading-none">Sari-Sari Store</p>
             </div>
         </div>
         
@@ -79,7 +90,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold tracking-wider text-white">SwiftPOS</h1>
-                    <p class="text-[10px] text-indigo-400 font-semibold uppercase">Menu</p>
+                    <p class="text-[10px] text-indigo-400 font-semibold uppercase leading-none">Menu</p>
                 </div>
             </div>
             <button onclick="toggleMobileMenu()" class="text-slate-400 hover:text-white p-1">
@@ -133,15 +144,15 @@
             {% endif %}
         </nav>
 
-        <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+        <div class="p-4 border-t border-slate-800 bg-[#070a11]">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-sm">
                         {{ current_user.username[0].upper() }}
                     </div>
                     <div>
-                        <p class="text-sm font-semibold truncate text-white">{{ current_user.full_name or current_user.username }}</p>
-                        <span class="text-[10px] text-slate-400 capitalize">{{ current_user.role }}</span>
+                        <p class="text-sm font-semibold truncate text-white leading-none">{{ current_user.full_name or current_user.username }}</p>
+                        <span class="text-[10px] text-slate-400 capitalize font-semibold leading-none">{{ current_user.role }}</span>
                     </div>
                 </div>
                 <a href="{{ url_for('logout') }}" class="p-2 text-slate-400 hover:text-red-400" title="Sign Out">
@@ -152,7 +163,7 @@
     </div>
 
     <!-- Desktop Sidebar Navigation -->
-    <aside class="hidden lg:flex w-64 bg-secondary text-white flex-col h-full shadow-2xl z-20 shrink-0">
+    <aside class="hidden lg:flex w-64 bg-[#0f172a] text-white flex-col h-full shadow-2xl z-20 shrink-0">
         <!-- Logo Header -->
         <div class="p-5 flex items-center justify-between border-b border-slate-800">
             <div class="flex items-center gap-3">
@@ -161,7 +172,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-wider text-white">SwiftPOS</h1>
-                    <p class="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest">Sari-Sari Store POS</p>
+                    <p class="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest leading-none">Sari-Sari Store POS</p>
                 </div>
             </div>
         </div>
@@ -214,15 +225,15 @@
         </nav>
 
         <!-- User Profile & Logout -->
-        <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+        <div class="p-4 border-t border-slate-850 bg-slate-950/50">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-sm shadow-md">
                         {{ current_user.username[0].upper() }}
                     </div>
                     <div class="min-w-0">
-                        <p class="text-sm font-semibold truncate text-white">{{ current_user.full_name or current_user.username }}</p>
-                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider {{ 'bg-amber-500/20 text-amber-300' if current_user.role == 'admin' else 'bg-blue-500/20 text-blue-300' }}">
+                        <p class="text-sm font-semibold truncate text-white leading-none">{{ current_user.full_name or current_user.username }}</p>
+                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider bg-slate-800 text-slate-300 mt-1.5 leading-none">
                             {{ current_user.role }}
                         </span>
                     </div>
@@ -250,7 +261,7 @@
             {% endwith %}
         </div>
 
-        <div class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-slate-100/70">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6 bg-slate-50/50">
             {% block content %}{% endblock %}
         </div>
     </main>

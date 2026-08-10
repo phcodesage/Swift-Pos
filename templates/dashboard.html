@@ -72,6 +72,71 @@
         </div>
     </div>
 
+    <!-- Waveform Performance Chart (The requested UI Trendline) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 md:p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    Revenue Performance Waveform
+                </h3>
+                <p class="text-[11px] text-gray-500">Continuous daily checkout sales trend over the last 7 days</p>
+            </div>
+            <div class="text-right">
+                <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">Live Trend</span>
+            </div>
+        </div>
+
+        <!-- Dynamic SVG Chart Container -->
+        <div class="relative w-full h-[180px] sm:h-[220px] bg-slate-900 rounded-2xl overflow-hidden shadow-inner border border-slate-950 p-2">
+            <!-- Grid Lines Background -->
+            <div class="absolute inset-0 grid grid-cols-6 grid-rows-4 opacity-5 pointer-events-none">
+                <div class="border-b border-r border-white"></div>
+                <div class="border-b border-r border-white"></div>
+                <div class="border-b border-r border-white"></div>
+                <div class="border-b border-r border-white"></div>
+                <div class="border-b border-r border-white"></div>
+                <div class="border-b border-white"></div>
+                <!-- Repeat pattern -->
+            </div>
+
+            <!-- Glowing SVG Curve -->
+            <svg id="salesWaveform" class="w-full h-full" viewBox="0 0 700 200" preserveAspectRatio="none">
+                <defs>
+                    <!-- Glowing Gradient for Line Fill -->
+                    <linearGradient id="waveGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="#10b981" stop-opacity="0.0" />
+                    </linearGradient>
+                    <!-- Glow filter for neon effect -->
+                    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="5" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                </defs>
+                
+                <!-- Shaded Area Under Curve -->
+                <path id="waveAreaPath" d="" fill="url(#waveGradient)"></path>
+                
+                <!-- Neon Wave Line -->
+                <path id="waveLinePath" d="" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" filter="url(#neonGlow)"></path>
+            </svg>
+
+            <!-- Tooltip Popup -->
+            <div id="chartTooltip" class="absolute bg-slate-950/90 border border-slate-800 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold pointer-events-none hidden shadow-xl z-10 flex flex-col items-center">
+                <span id="tooltipDay" class="text-slate-400">Day</span>
+                <span id="tooltipTotal" class="text-emerald-400 mt-0.5">₱0.00</span>
+            </div>
+        </div>
+
+        <!-- X-Axis Labels -->
+        <div class="grid grid-cols-7 text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-widest px-4">
+            {% for item in sales_trend %}
+            <div>{{ item.day }}</div>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Low Stock Alert Box -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="p-4 border-b border-gray-100 bg-amber-50/50 flex items-center justify-between">
@@ -128,4 +193,102 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Sales data trend passed directly from the Jinja context
+    const rawTrendData = {{ sales_trend|tojson }};
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        renderWaveformChart();
+    });
+
+    function renderWaveformChart() {
+        const svg = document.getElementById('salesWaveform');
+        if (!svg) return;
+
+        // Viewbox dimensions: 700 width, 200 height
+        const viewWidth = 700;
+        const viewHeight = 200;
+        const paddingLeft = 30;
+        const paddingRight = 30;
+        const paddingTop = 40;
+        const paddingBottom = 20;
+
+        const chartWidth = viewWidth - paddingLeft - paddingRight;
+        const chartHeight = viewHeight - paddingTop - paddingBottom;
+
+        const maxVal = Math.max(...rawTrendData.map(d => d.total), 100); // minimum scale peak of 100
+        const pointsCount = rawTrendData.length;
+
+        // Calculate (x, y) coordinates for each data point
+        const points = rawTrendData.map((d, index) => {
+            const x = paddingLeft + (index / (pointsCount - 1)) * chartWidth;
+            // Invert Y coordinate (SVG starts at top left)
+            const y = paddingTop + chartHeight - (d.total / maxVal) * chartHeight;
+            return { x, y, day: d.day, total: d.total };
+        });
+
+        // Generate smooth cubic bezier curve coordinates
+        // Using tension control points for a smooth waveform spline
+        let pathLineD = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 0; i < points.length - 1; i++) {
+            const current = points[i];
+            const next = points[i + 1];
+            
+            // Midpoint control calculation
+            const cpX1 = current.x + (next.x - current.x) / 2;
+            const cpY1 = current.y;
+            const cpX2 = current.x + (next.x - current.x) / 2;
+            const cpY2 = next.y;
+            
+            pathLineD += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${next.x} ${next.y}`;
+        }
+
+        // Apply path to neon stroke line
+        document.getElementById('waveLinePath').setAttribute('d', pathLineD);
+
+        // Close path at the bottom lines to apply a gradient shaded area fill
+        const pathAreaD = pathLineD + ` L ${points[points.length - 1].x} ${viewHeight - paddingBottom} L ${points[0].x} ${viewHeight - paddingBottom} Z`;
+        document.getElementById('waveAreaPath').setAttribute('d', pathAreaD);
+
+        // Add interactive hover listener points along the wave
+        points.forEach((pt, idx) => {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', pt.x);
+            circle.setAttribute('cy', pt.y);
+            circle.setAttribute('r', 6);
+            circle.setAttribute('fill', '#10b981');
+            circle.setAttribute('stroke', '#ffffff');
+            circle.setAttribute('stroke-width', '2');
+            circle.className = 'cursor-pointer transition-all duration-150 hover:r-8 hover:fill-emerald-400';
+            
+            circle.addEventListener('mouseenter', (e) => {
+                const tooltip = document.getElementById('chartTooltip');
+                document.getElementById('tooltipDay').textContent = `Sales on ${pt.day}`;
+                document.getElementById('tooltipTotal').textContent = `₱${pt.total.toFixed(2)}`;
+                
+                // Position tooltip above point
+                const svgRect = svg.getBoundingClientRect();
+                const container = svg.parentElement;
+                const containerRect = container.getBoundingClientRect();
+                
+                // Translate SVG coords to client coordinates
+                const ptX = (pt.x / viewWidth) * svgRect.width;
+                const ptY = (pt.y / viewHeight) * svgRect.height;
+                
+                tooltip.style.left = `${ptX - 60}px`;
+                tooltip.style.top = `${ptY - 55}px`;
+                tooltip.classList.remove('hidden');
+            });
+
+            circle.addEventListener('mouseleave', () => {
+                document.getElementById('chartTooltip').classList.add('hidden');
+            });
+
+            svg.appendChild(circle);
+        });
+    }
+</script>
 {% endblock %}

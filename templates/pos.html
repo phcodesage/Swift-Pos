@@ -93,30 +93,30 @@
         </div>
 
         <!-- Subtotal & Discount Footer -->
-        <div class="p-4 sm:p-5 bg-slate-900 text-white border-t border-gray-800 space-y-3 shrink-0">
+        <div class="p-4 sm:p-5 bg-slate-905 text-slate-800 border-t border-gray-150 space-y-3 shrink-0">
             <div class="space-y-1.5 text-xs">
-                <div class="flex justify-between text-slate-400">
+                <div class="flex justify-between text-gray-500 font-semibold">
                     <span>Subtotal</span>
-                    <span id="cartSubtotal" class="font-semibold text-slate-200">₱0.00</span>
+                    <span id="cartSubtotal" class="font-bold text-gray-900">₱0.00</span>
                 </div>
                 
-                <div class="flex justify-between items-center text-slate-400">
+                <div class="flex justify-between items-center text-gray-500 font-semibold">
                     <span>Discount (₱)</span>
                     <input type="number" id="discountInput" min="0" step="1" value="0" 
                         oninput="updateCartUI()" 
-                        class="w-20 bg-slate-800 text-right px-2 py-1 rounded-lg border border-slate-700 text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500">
+                        class="w-20 bg-gray-50 text-right px-2 py-1 rounded-lg border border-gray-200 text-xs font-bold text-emerald-600 focus:outline-none focus:border-emerald-500">
                 </div>
 
-                <div class="flex justify-between text-base pt-2 border-t border-slate-800 font-bold">
-                    <span class="text-slate-200">Total Payable</span>
-                    <span class="text-2xl text-emerald-400" id="cartTotal">₱0.00</span>
+                <div class="flex justify-between text-base pt-2 border-t border-gray-100 font-bold">
+                    <span class="text-gray-700">Total Payable</span>
+                    <span class="text-2xl text-emerald-600" id="cartTotal">₱0.00</span>
                 </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="grid grid-cols-2 gap-2 pt-2">
                 <button onclick="openCheckoutModal('utang')" id="utangBtn" disabled 
-                    class="py-3 px-3 rounded-xl border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5">
+                    class="py-3 px-3 rounded-xl border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5">
                     <i data-lucide="book-open" class="w-4 h-4"></i> Utang / Credit
                 </button>
                 <button onclick="openCheckoutModal('cash')" id="checkoutBtn" disabled 
@@ -519,7 +519,7 @@
 
             const el = document.createElement('div');
             el.id = `cart-item-${item.id}`;
-            el.className = `border rounded-xl p-3 flex flex-col gap-2 shadow-sm transition-all duration-300 ${isLatest ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-400' : 'bg-gray-50/80 border-gray-100 hover:border-gray-200'}`;
+            el.className = `bg-gray-50/80 border border-gray-100 rounded-xl p-3 flex flex-col gap-2 shadow-sm hover:border-gray-200 transition-all ${isLatest ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-400' : ''}`;
             
             let partialKgButtons = '';
             if (item.unit === 'Kg') {
@@ -705,7 +705,7 @@
                 lastAddedId = null;
                 document.getElementById('discountInput').value = 0;
                 updateCartUI();
-                fetchProducts();
+                updateProductBadges();
             } else {
                 alert(data.message || 'Error processing transaction');
                 btn.disabled = false;
