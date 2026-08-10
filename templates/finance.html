@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
+                <div class="p-2 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-500/20">
+                    <i data-lucide="piggy-bank" class="w-6 h-6"></i>
+                </div>
+                Finance & Profit Center
+            </h1>
+            <p class="text-xs text-gray-500 mt-1">Track store income, capital remits, expense logs, and net profit</p>
+        </div>
+
+        <!-- Period Selector -->
+        <div class="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm text-xs font-bold">
+            <a href="{{ url_for('finance', period='today') }}" class="px-3 py-1.5 rounded-xl transition-all {{ 'bg-primary text-white shadow-sm' if period == 'today' else 'text-gray-600 hover:text-gray-900' }}">Today</a>
+            <a href="{{ url_for('finance', period='week') }}" class="px-3 py-1.5 rounded-xl transition-all {{ 'bg-primary text-white shadow-sm' if period == 'week' else 'text-gray-600 hover:text-gray-900' }}">This Week</a>
+            <a href="{{ url_for('finance', period='month') }}" class="px-3 py-1.5 rounded-xl transition-all {{ 'bg-primary text-white shadow-sm' if period == 'month' else 'text-gray-600 hover:text-gray-900' }}">This Month</a>
+            <a href="{{ url_for('finance', period='year') }}" class="px-3 py-1.5 rounded-xl transition-all {{ 'bg-primary text-white shadow-sm' if period == 'year' else 'text-gray-600 hover:text-gray-900' }}">This Year</a>
+            <a href="{{ url_for('finance', period='all') }}" class="px-3 py-1.5 rounded-xl transition-all {{ 'bg-primary text-white shadow-sm' if period == 'all' else 'text-gray-600 hover:text-gray-900' }}">All Time</a>
+        </div>
+    </div>
+
+    <!-- Overview Financial Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Total Gross Income -->
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Gross Income</span>
+                <div class="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-black text-gray-900 mt-2">₱{{ "%.2f"|format(total_income) }}</h3>
+            <p class="text-[11px] text-gray-400 mt-1">Total revenue collected</p>
+        </div>
+
+        <!-- Total Capital / Remits -->
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Capital / Remits</span>
+                <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                    <i data-lucide="coins" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-black text-gray-900 mt-2">₱{{ "%.2f"|format(total_capital) }}</h3>
+            <p class="text-[11px] text-gray-400 mt-1">Product cost of sold items</p>
+        </div>
+
+        <!-- Total Expenses -->
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-rose-600">Total Expenses</span>
+                <div class="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                    <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-black text-rose-900 mt-2">₱{{ "%.2f"|format(total_expenses) }}</h3>
+            <p class="text-[11px] text-rose-500 mt-1">Operating costs & bills</p>
+        </div>
+
+        <!-- Net Income -->
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl p-5 shadow-lg shadow-emerald-500/20">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-100">Net Profit</span>
+                <div class="p-2 bg-white/20 text-white rounded-xl backdrop-blur-md">
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-black text-white mt-2">₱{{ "%.2f"|format(net_profit) }}</h3>
+            <p class="text-[11px] text-emerald-100 mt-1">Gross Income - Capital - Expenses</p>
+        </div>
+    </div>
+
+    <!-- Expenses Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gray-50/70 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-gray-800">Store Expenses Tracker</h3>
+                <p class="text-[11px] text-gray-500">Log electricity, rent, snacks, or transport costs</p>
+            </div>
+            <button onclick="openExpenseModal()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Expense
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+                <thead class="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-5 py-3.5 font-bold">Description</th>
+                        <th class="px-5 py-3.5 font-bold">Category</th>
+                        <th class="px-5 py-3.5 font-bold">Logged By</th>
+                        <th class="px-5 py-3.5 font-bold">Date & Time</th>
+                        <th class="px-5 py-3.5 font-bold">Amount</th>
+                        <th class="px-5 py-3.5 font-bold text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for e in expenses %}
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="px-5 py-4 font-bold text-gray-900">{{ e.description }}</td>
+                        <td class="px-5 py-4 text-gray-500">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                                {{ e.category }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-4 text-gray-600">{{ e.user.username }}</td>
+                        <td class="px-5 py-4 text-gray-500">{{ e.date_created.strftime('%b %d, %Y %I:%M %p') }}</td>
+                        <td class="px-5 py-4 font-black text-rose-600">₱{{ "%.2f"|format(e.amount) }}</td>
+                        <td class="px-5 py-4 text-center">
+                            <form method="POST" action="{{ url_for('finance') }}" onsubmit="return confirm('Delete this expense entry?');">
+                                <input type="hidden" name="action" value="delete_expense">
+                                <input type="hidden" name="id" value="{{ e.id }}">
+                                <button type="submit" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Delete">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+                            <i data-lucide="receipt" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i>
+                            <p>No expense entries logged for this period.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div id="expenseModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="expenseModalContent">
+        <div class="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+            <h3 class="text-base font-bold text-gray-800">Add New Store Expense</h3>
+            <button onclick="closeExpenseModal()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('finance') }}" class="p-5 space-y-4">
+            <input type="hidden" name="action" value="add_expense">
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Expense Description</label>
+                <input type="text" name="description" placeholder="e.g. Meralco Electric Bill / Ice Delivery" required
+                    class="w-full rounded-xl border-gray-300 bg-gray-50 border py-2.5 px-3 text-xs font-semibold">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Expense Category</label>
+                <select name="category" class="w-full rounded-xl border-gray-300 bg-gray-50 border py-2.5 px-3 text-xs font-semibold">
+                    <option value="Utilities">Utilities (Electricity, Water, WiFi)</option>
+                    <option value="Transportation">Transportation / Delivery</option>
+                    <option value="Packaging">Plastic Bags & Packaging</option>
+                    <option value="Supplies">Store Supplies / Equipment</option>
+                    <option value="Miscellaneous">Miscellaneous</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Amount (₱)</label>
+                <input type="number" step="0.01" name="amount" placeholder="0.00" required
+                    class="w-full rounded-xl border-gray-300 bg-gray-50 border-2 focus:border-rose-500 py-2.5 px-3 text-base font-black text-gray-900">
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeExpenseModal()" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700">Cancel</button>
+                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs shadow-md hover:bg-rose-700">Save Expense</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openExpenseModal() {
+        const modal = document.getElementById('expenseModal');
+        const content = document.getElementById('expenseModalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeExpenseModal() {
+        const modal = document.getElementById('expenseModal');
+        const content = document.getElementById('expenseModalContent');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+</script>
+{% endblock %}

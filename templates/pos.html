@@ -1,0 +1,766 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex flex-col lg:flex-row gap-5 min-h-[calc(100vh-6rem)] lg:h-[calc(100vh-5.5rem)] pb-20 lg:pb-0 lg:overflow-hidden">
+    
+    <!-- Left Section: Products Catalog (Sticky header & filter, only items scroll) -->
+    <div class="flex-1 flex flex-col gap-4 min-w-0 lg:h-full lg:overflow-hidden">
+        
+        {% if not active_shift %}
+        <!-- Active Shift Warning Header -->
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-sm shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-amber-500 text-white rounded-xl">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-amber-900 text-sm">No Active Shift Started</h4>
+                    <p class="text-xs text-amber-700">Start your shift to keep accurate track of your daily cash income.</p>
+                </div>
+            </div>
+            <a href="{{ url_for('shifts') }}" onclick="playAudio('click')" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-md transition-all">
+                Start Shift Now
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Filter & Search Bar (Sticky) -->
+        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
+            <div class="relative flex-1 w-full">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input type="text" id="searchInput" 
+                    class="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/80 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 text-sm transition-all"
+                    placeholder="Search product name..." onkeyup="fetchProducts()">
+            </div>
+            
+            <div class="flex gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 hide-scrollbar" id="categoryFilter">
+                <button onclick="setCategory('All')" class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all bg-primary text-white shadow-md shadow-indigo-500/20 category-btn" data-cat="All">All Items</button>
+                {% for cat in categories %}
+                <button onclick="setCategory('{{ cat }}')" class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all bg-gray-100 text-gray-600 hover:bg-gray-200 category-btn" data-cat="{{ cat }}">{{ cat }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Products Grid (Only this container scrolls) -->
+        <div class="flex-1 bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100 overflow-y-auto">
+            <div id="productsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                <!-- JavaScript populated -->
+            </div>
+
+            <div id="loadingProducts" class="hidden flex justify-center items-center py-16">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary"></i>
+            </div>
+            
+            <div id="noProducts" class="hidden flex flex-col items-center justify-center py-16 text-gray-400">
+                <i data-lucide="package-search" class="w-12 h-12 mb-3 text-gray-300"></i>
+                <p class="text-sm font-medium">No matching items found in inventory.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Section: Cart / Checkout -->
+    <div id="cartSection" class="w-full lg:w-[400px] bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col overflow-hidden shrink-0 mt-4 lg:mt-0 lg:h-full">
+        
+        <!-- Cart Header -->
+        <div class="p-4 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="p-2 bg-indigo-50 text-primary rounded-xl">
+                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-gray-800">Current Sales Cart</h2>
+                    <p class="text-[11px] text-gray-500" id="cartItemCount">0 items</p>
+                </div>
+            </div>
+            <button onclick="clearCart()" class="text-xs text-rose-500 hover:text-rose-700 font-semibold px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors">Clear All</button>
+        </div>
+
+        <!-- Cart Items List Container -->
+        <div class="flex-1 max-h-[350px] lg:max-h-none overflow-y-auto p-4 relative scroll-smooth" id="cartContainer">
+            <div id="cartItemsList" class="space-y-3">
+                <!-- Dynamic Cart Items Rendered Here -->
+            </div>
+
+            <div id="emptyCartMsg" class="h-full flex flex-col items-center justify-center text-gray-400 py-12">
+                <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                    <i data-lucide="shopping-cart" class="w-8 h-8 text-gray-300"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-500">Cart is currently empty</p>
+                <p class="text-xs text-gray-400 mt-1">Tap products on the left to add</p>
+            </div>
+        </div>
+
+        <!-- Subtotal & Discount Footer -->
+        <div class="p-4 sm:p-5 bg-slate-900 text-white border-t border-gray-800 space-y-3 shrink-0">
+            <div class="space-y-1.5 text-xs">
+                <div class="flex justify-between text-slate-400">
+                    <span>Subtotal</span>
+                    <span id="cartSubtotal" class="font-semibold text-slate-200">₱0.00</span>
+                </div>
+                
+                <div class="flex justify-between items-center text-slate-400">
+                    <span>Discount (₱)</span>
+                    <input type="number" id="discountInput" min="0" step="1" value="0" 
+                        oninput="updateCartUI()" 
+                        class="w-20 bg-slate-800 text-right px-2 py-1 rounded-lg border border-slate-700 text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div class="flex justify-between text-base pt-2 border-t border-slate-800 font-bold">
+                    <span class="text-slate-200">Total Payable</span>
+                    <span class="text-2xl text-emerald-400" id="cartTotal">₱0.00</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button onclick="openCheckoutModal('utang')" id="utangBtn" disabled 
+                    class="py-3 px-3 rounded-xl border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> Utang / Credit
+                </button>
+                <button onclick="openCheckoutModal('cash')" id="checkoutBtn" disabled 
+                    class="py-3 px-3 rounded-xl shadow-lg shadow-indigo-500/30 text-white font-bold text-xs bg-primary hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="banknote" class="w-4 h-4"></i> Pay Cash
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Fixed Bottom Cart Floating Bar -->
+<div id="mobileCartBar" onclick="scrollToCart()" class="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900 text-white p-3.5 border-t border-slate-800 z-30 shadow-2xl flex items-center justify-between cursor-pointer transform transition-transform duration-300">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold relative">
+            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+            <span id="mobileBadge" class="absolute -top-1 -right-1 bg-emerald-500 text-slate-950 font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-md">0</span>
+        </div>
+        <div>
+            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Amount</span>
+            <h4 class="text-lg font-black text-emerald-400 leading-tight" id="mobileCartTotal">₱0.00</h4>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <span class="text-xs font-bold bg-emerald-600 text-white px-3 py-2 rounded-xl shadow-md flex items-center gap-1">
+            View Cart <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </span>
+    </div>
+</div>
+
+<!-- Checkout Modal -->
+<div id="checkoutModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="checkoutModalContent">
+        <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+            <div>
+                <h3 class="text-lg font-bold text-gray-800" id="checkoutModalTitle">Complete Cash Payment</h3>
+                <p class="text-xs text-gray-500">Verify total & enter payment details</p>
+            </div>
+            <button onclick="closeCheckoutModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 space-y-4">
+            <div class="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 flex justify-between items-center">
+                <div>
+                    <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Final Total</span>
+                    <h4 class="text-2xl font-black text-indigo-950 mt-0.5" id="modalTotal">₱0.00</h4>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-white text-indigo-700 shadow-sm" id="modalPaymentTypeBadge">Cash Sale</span>
+            </div>
+            
+            <div id="cashInputGroup">
+                <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">Cash Received from Customer</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 font-extrabold text-lg">
+                        ₱
+                    </div>
+                    <input type="number" id="cashInput" step="1"
+                        class="pl-10 w-full rounded-xl border-gray-300 bg-gray-50 border-2 focus:border-primary focus:bg-white focus:ring-0 py-3.5 text-xl font-bold transition-all text-gray-900"
+                        placeholder="0.00" onkeyup="calculateChange()">
+                </div>
+                <div class="grid grid-cols-4 gap-2 mt-2">
+                    <button type="button" onclick="quickCash(20)" class="py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700">₱20</button>
+                    <button type="button" onclick="quickCash(50)" class="py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700">₱50</button>
+                    <button type="button" onclick="quickCash(100)" class="py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700">₱100</button>
+                    <button type="button" onclick="quickCash(500)" class="py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700">₱500</button>
+                    <button type="button" onclick="quickCash(1000)" class="py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700 col-span-4">₱1000 (Exact / Big Note)</button>
+                </div>
+            </div>
+
+            <div id="utangInputGroup" class="hidden">
+                <label class="block text-xs font-bold uppercase tracking-wider text-amber-700 mb-1.5">Borrower Full Name (Mang / Aling / Sukuki)</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-500">
+                        <i data-lucide="user-check" class="w-5 h-5"></i>
+                    </div>
+                    <input type="text" id="borrowerInput" 
+                        class="pl-10 w-full rounded-xl border-amber-300 bg-amber-50/50 border-2 focus:border-amber-500 focus:bg-white py-3 text-sm font-semibold transition-all"
+                        placeholder="e.g. Aling Nena / Mang Juan">
+                </div>
+                <p class="text-[11px] text-amber-600 mt-1">This transaction will be recorded in the Lending / Utang ledger.</p>
+            </div>
+
+            <div id="changeCard" class="flex justify-between items-center p-3.5 bg-emerald-50 rounded-xl border border-emerald-200">
+                <span class="text-xs font-bold text-emerald-800">Change Due</span>
+                <span class="text-xl font-bold text-emerald-700" id="changeAmount">₱0.00</span>
+            </div>
+        </div>
+
+        <div class="p-5 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <button onclick="closeCheckoutModal()" class="flex-1 py-3 px-4 rounded-xl border border-gray-300 bg-white text-gray-700 text-xs font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+            <button onclick="processCheckout()" id="confirmCheckoutBtn" disabled class="flex-1 py-3 px-4 rounded-xl shadow-lg text-white text-xs font-bold bg-primary hover:bg-indigo-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Confirm Sale
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Printable Receipt Modal -->
+<div id="receiptModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="receiptModalContent">
+        <div class="p-5 border-b border-gray-100 bg-emerald-50 text-center">
+            <div class="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-lg shadow-emerald-500/30">
+                <i data-lucide="check" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Transaction Successful</h3>
+            <p class="text-xs text-gray-500" id="receiptTimestamp">Receipt Preview</p>
+        </div>
+        
+        <div class="p-5 space-y-3 font-mono text-xs border-b border-gray-100 bg-gray-50/50">
+            <div class="text-center font-sans border-b border-dashed border-gray-300 pb-3">
+                <h4 class="font-black text-sm text-gray-800">SWIFTPOS STORE</h4>
+                <p class="text-[10px] text-gray-500">Official Customer Receipt</p>
+            </div>
+            
+            <div id="receiptItemsList" class="space-y-1.5 py-2 border-b border-dashed border-gray-300">
+                <!-- Itemized receipt lines -->
+            </div>
+
+            <div class="space-y-1 font-sans text-xs pt-1">
+                <div class="flex justify-between text-gray-500">
+                    <span>Subtotal</span>
+                    <span id="receiptSubtotal">₱0.00</span>
+                </div>
+                <div class="flex justify-between text-gray-500" id="receiptDiscountRow">
+                    <span>Discount</span>
+                    <span id="receiptDiscount" class="text-emerald-600">-₱0.00</span>
+                </div>
+                <div class="flex justify-between font-bold text-sm text-gray-900 pt-1">
+                    <span>TOTAL</span>
+                    <span id="receiptTotal">₱0.00</span>
+                </div>
+                <div class="flex justify-between text-gray-500" id="receiptCashRow">
+                    <span>Cash Received</span>
+                    <span id="receiptCash">₱0.00</span>
+                </div>
+                <div class="flex justify-between font-bold text-emerald-700" id="receiptChangeRow">
+                    <span>Change</span>
+                    <span id="receiptChange">₱0.00</span>
+                </div>
+                <div class="flex justify-between font-bold text-amber-700 hidden" id="receiptBorrowerRow">
+                    <span>Borrower (Utang)</span>
+                    <span id="receiptBorrower">N/A</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-gray-50 flex gap-2">
+            <button onclick="closeReceiptModal()" class="w-full py-3 rounded-xl shadow-md text-white font-bold text-xs bg-primary hover:bg-indigo-600 transition-all flex items-center justify-center gap-2">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Next Transaction
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentCategory = 'All';
+    let cart = [];
+    let currentSubtotal = 0;
+    let currentTotal = 0;
+    let currentDiscount = 0;
+    let activeCheckoutType = 'cash'; // 'cash' or 'utang'
+    let lastAddedId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchProducts();
+    });
+
+    function setCategory(cat) {
+        playAudio('click');
+        currentCategory = cat;
+        
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            if (btn.dataset.cat === cat) {
+                btn.classList.remove('bg-gray-100', 'text-gray-600', 'hover:bg-gray-200');
+                btn.classList.add('bg-primary', 'text-white', 'shadow-md', 'shadow-indigo-500/20');
+            } else {
+                btn.classList.add('bg-gray-100', 'text-gray-600', 'hover:bg-gray-200');
+                btn.classList.remove('bg-primary', 'text-white', 'shadow-md', 'shadow-indigo-500/20');
+            }
+        });
+        fetchProducts();
+    }
+
+    async function fetchProducts() {
+        const search = document.getElementById('searchInput').value;
+        const grid = document.getElementById('productsGrid');
+        const loader = document.getElementById('loadingProducts');
+        const empty = document.getElementById('noProducts');
+        
+        grid.innerHTML = '';
+        loader.classList.remove('hidden');
+        empty.classList.add('hidden');
+        
+        try {
+            const res = await fetch(`/api/products?category=${encodeURIComponent(currentCategory)}&search=${encodeURIComponent(search)}`);
+            const products = await res.json();
+            
+            loader.classList.add('hidden');
+            
+            if (products.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+            
+            products.forEach(p => {
+                const isOutOfStock = p.stock <= 0;
+                const cartItem = cart.find(i => Number(i.id) === Number(p.id));
+                const inCartQty = cartItem ? cartItem.qty : 0;
+
+                const card = document.createElement('div');
+                card.id = `prod-card-${p.id}`;
+                card.className = `bg-white border rounded-2xl p-2.5 sm:p-3 shadow-sm flex flex-col justify-between transition-all duration-200 active:scale-95 select-none ${isOutOfStock ? 'opacity-40 grayscale border-gray-200 cursor-not-allowed' : 'cursor-pointer border-gray-100 hover:border-indigo-400 hover:shadow-md transform hover:-translate-y-0.5'}`;
+                
+                if (!isOutOfStock) {
+                    card.addEventListener('click', (e) => {
+                        // Visual pulse ring animation on click
+                        card.classList.add('ring-4', 'ring-emerald-500', 'border-emerald-500');
+                        setTimeout(() => {
+                            card.classList.remove('ring-4', 'ring-emerald-500', 'border-emerald-500');
+                        }, 250);
+                        addToCart(p);
+                    });
+                }
+                
+                const badgeColor = p.unit === 'Kg' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-blue-100 text-blue-800 border-blue-200';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="aspect-square bg-slate-100 rounded-xl mb-2 flex items-center justify-center relative overflow-hidden group">
+                            <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null; this.src='/static/images/coca_cola.jpg'">
+                            
+                            <!-- Unit Badge -->
+                            <span class="unit-badge absolute top-1.5 right-1.5 px-2 py-0.5 text-[9px] font-extrabold rounded-full border shadow-sm ${badgeColor}">
+                                ${p.unit}
+                            </span>
+
+                            <!-- In-Cart Quantity Indicator Badge -->
+                            ${inCartQty > 0 ? `<span class="in-cart-badge absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-black rounded-full bg-emerald-500 text-white shadow-md animate-pulse">✓ ${p.unit === 'Kg' ? inCartQty.toFixed(2) : inCartQty} in cart</span>` : ''}
+
+                            ${isOutOfStock ? '<div class="absolute inset-0 bg-rose-900/40 backdrop-blur-[1px] flex items-center justify-center"><span class="bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">Out of Stock</span></div>' : ''}
+                        </div>
+                        <h4 class="font-bold text-gray-800 text-xs line-clamp-2 leading-tight">${p.name}</h4>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                        <span class="text-sm font-extrabold text-indigo-600">₱${p.price.toFixed(2)}</span>
+                        <span class="text-[10px] font-semibold text-gray-400">${p.stock} ${p.unit}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (e) {
+            console.error(e);
+            loader.classList.add('hidden');
+        }
+    }
+
+    // Update only the badge indicators on existing product cards in the grid (Preserves scroll position!)
+    function updateProductBadges() {
+        document.querySelectorAll('[id^="prod-card-"]').forEach(card => {
+            const productId = Number(card.id.replace('prod-card-', ''));
+            const cartItem = cart.find(i => Number(i.id) === productId);
+            const qty = cartItem ? cartItem.qty : 0;
+            
+            const aspectDiv = card.querySelector('.aspect-square');
+            if (!aspectDiv) return;
+            
+            let badge = aspectDiv.querySelector('.in-cart-badge');
+            if (qty > 0) {
+                const unitBadge = aspectDiv.querySelector('.unit-badge');
+                const unit = unitBadge ? unitBadge.textContent.trim() : 'pcs';
+                const qtyText = unit === 'Kg' ? qty.toFixed(2) : qty;
+                
+                if (badge) {
+                    badge.textContent = `✓ ${qtyText} in cart`;
+                } else {
+                    badge = document.createElement('span');
+                    badge.className = 'in-cart-badge absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-black rounded-full bg-emerald-500 text-white shadow-md animate-pulse';
+                    badge.textContent = `✓ ${qtyText} in cart`;
+                    aspectDiv.appendChild(badge);
+                }
+            } else {
+                if (badge) {
+                    badge.remove();
+                }
+            }
+        });
+    }
+
+    function addToCart(product) {
+        playAudio('add');
+        lastAddedId = product.id;
+        const existing = cart.find(i => Number(i.id) === Number(product.id));
+        const defaultStep = product.unit === 'Kg' ? 0.25 : 1;
+        
+        if (existing) {
+            if (existing.qty + defaultStep <= product.stock) {
+                existing.qty += defaultStep;
+            } else {
+                alert(`Stock limit reached for ${product.name} (${product.stock} ${product.unit} max)`);
+                return;
+            }
+        } else {
+            cart.push({
+                ...product,
+                qty: defaultStep
+            });
+        }
+        updateCartUI();
+        updateProductBadges(); // Safe visual update, doesn't reload grid or scrollbar!
+    }
+
+    function updateCartItemQty(id, delta) {
+        playAudio('click');
+        lastAddedId = id;
+        const item = cart.find(i => Number(i.id) === Number(id));
+        if (!item) return;
+        
+        const step = item.unit === 'Kg' ? 0.25 : 1;
+        const newQty = item.qty + (delta * step);
+        
+        if (newQty <= 0) {
+            playAudio('delete');
+            cart = cart.filter(i => Number(i.id) !== Number(id));
+        } else if (newQty > item.stock) {
+            alert(`Stock limit reached (${item.stock} ${item.unit} available)`);
+        } else {
+            item.qty = Math.round(newQty * 100) / 100;
+        }
+        updateCartUI();
+        updateProductBadges();
+    }
+
+    function setCustomKgQty(id, customQty) {
+        playAudio('click');
+        lastAddedId = id;
+        const item = cart.find(i => Number(i.id) === Number(id));
+        if (!item) return;
+        if (customQty > item.stock) {
+            alert(`Stock limit reached (${item.stock} Kg available)`);
+            return;
+        }
+        item.qty = customQty;
+        updateCartUI();
+        updateProductBadges();
+    }
+
+    function updateCartUI() {
+        const listContainer = document.getElementById('cartItemsList');
+        const emptyMsg = document.getElementById('emptyCartMsg');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const utangBtn = document.getElementById('utangBtn');
+        const countEl = document.getElementById('cartItemCount');
+        const subtotalEl = document.getElementById('cartSubtotal');
+        const totalEl = document.getElementById('cartTotal');
+        const mobileTotalEl = document.getElementById('mobileCartTotal');
+        const mobileBadge = document.getElementById('mobileBadge');
+
+        if (!listContainer || !emptyMsg) return;
+
+        listContainer.innerHTML = '';
+        currentSubtotal = 0;
+        
+        if (cart.length === 0) {
+            emptyMsg.classList.remove('hidden');
+            checkoutBtn.disabled = true;
+            utangBtn.disabled = true;
+            countEl.textContent = '0 items';
+            subtotalEl.textContent = '₱0.00';
+            totalEl.textContent = '₱0.00';
+            if (mobileTotalEl) mobileTotalEl.textContent = '₱0.00';
+            if (mobileBadge) mobileBadge.textContent = '0';
+            return;
+        }
+        
+        emptyMsg.classList.add('hidden');
+        checkoutBtn.disabled = false;
+        utangBtn.disabled = false;
+        
+        let totalItemsCount = 0;
+        let lastElementToScroll = null;
+
+        cart.forEach(item => {
+            const itemSubtotal = item.price * item.qty;
+            currentSubtotal += itemSubtotal;
+            totalItemsCount += item.unit === 'pcs' ? item.qty : 1;
+            
+            const isLatest = Number(item.id) === Number(lastAddedId);
+
+            const el = document.createElement('div');
+            el.id = `cart-item-${item.id}`;
+            el.className = `border rounded-xl p-3 flex flex-col gap-2 shadow-sm transition-all duration-300 ${isLatest ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-400' : 'bg-gray-50/80 border-gray-100 hover:border-gray-200'}`;
+            
+            let partialKgButtons = '';
+            if (item.unit === 'Kg') {
+                partialKgButtons = `
+                    <div class="flex gap-1 mt-1">
+                        <button onclick="setCustomKgQty(${item.id}, 0.25)" class="px-1.5 py-0.5 text-[10px] font-bold bg-white border border-gray-200 rounded hover:bg-indigo-50 hover:text-indigo-600">0.25kg</button>
+                        <button onclick="setCustomKgQty(${item.id}, 0.50)" class="px-1.5 py-0.5 text-[10px] font-bold bg-white border border-gray-200 rounded hover:bg-indigo-50 hover:text-indigo-600">0.50kg</button>
+                        <button onclick="setCustomKgQty(${item.id}, 0.75)" class="px-1.5 py-0.5 text-[10px] font-bold bg-white border border-gray-200 rounded hover:bg-indigo-50 hover:text-indigo-600">0.75kg</button>
+                        <button onclick="setCustomKgQty(${item.id}, 1.00)" class="px-1.5 py-0.5 text-[10px] font-bold bg-white border border-gray-200 rounded hover:bg-indigo-50 hover:text-indigo-600">1.00kg</button>
+                    </div>
+                `;
+            }
+
+            el.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h5 class="font-bold text-gray-800 text-xs">${item.name}</h5>
+                        <p class="text-[10px] text-gray-500">₱${item.price.toFixed(2)} / ${item.unit}</p>
+                        ${partialKgButtons}
+                    </div>
+                    <div class="text-right">
+                        <span class="font-extrabold text-xs text-indigo-600">₱${itemSubtotal.toFixed(2)}</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-gray-200/50">
+                    <span class="text-[10px] font-bold text-gray-400">Qty: ${item.unit === 'Kg' ? item.qty.toFixed(2) : item.qty} ${item.unit}</span>
+                    <div class="flex items-center gap-1 bg-white rounded-lg p-0.5 border border-gray-200">
+                        <button onclick="updateCartItemQty(${item.id}, -1)" class="w-5 h-5 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded text-xs font-bold">-</button>
+                        <span class="text-xs font-bold w-10 text-center text-gray-800">${item.unit === 'Kg' ? item.qty.toFixed(2) : item.qty}</span>
+                        <button onclick="updateCartItemQty(${item.id}, 1)" class="w-5 h-5 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded text-xs font-bold">+</button>
+                    </div>
+                </div>
+            `;
+            listContainer.appendChild(el);
+
+            if (isLatest) {
+                lastElementToScroll = el;
+            }
+        });
+        
+        currentDiscount = parseFloat(document.getElementById('discountInput').value) || 0;
+        currentTotal = Math.max(0, currentSubtotal - currentDiscount);
+
+        countEl.textContent = `${totalItemsCount} line items`;
+        subtotalEl.textContent = `₱${currentSubtotal.toFixed(2)}`;
+        totalEl.textContent = `₱${currentTotal.toFixed(2)}`;
+        if (mobileTotalEl) mobileTotalEl.textContent = `₱${currentTotal.toFixed(2)}`;
+        if (mobileBadge) mobileBadge.textContent = totalItemsCount;
+
+        // Auto-scroll only the cart list container to the newly added item
+        if (lastElementToScroll) {
+            lastElementToScroll.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function scrollToCart() {
+        const cartSec = document.getElementById('cartSection');
+        if (cartSec) {
+            cartSec.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    function clearCart() {
+        if (cart.length > 0 && confirm('Clear all items from the current cart?')) {
+            playAudio('delete');
+            cart = [];
+            lastAddedId = null;
+            document.getElementById('discountInput').value = 0;
+            updateCartUI();
+            updateProductBadges();
+        }
+    }
+
+    function openCheckoutModal(type) {
+        playAudio('click');
+        if (cart.length === 0) return;
+        activeCheckoutType = type;
+        
+        document.getElementById('checkoutModalTitle').textContent = type === 'cash' ? 'Complete Cash Payment' : 'Record Utang / Credit Sale';
+        document.getElementById('modalPaymentTypeBadge').textContent = type === 'cash' ? 'Cash Sale' : 'Utang / Credit';
+        document.getElementById('modalPaymentTypeBadge').className = type === 'cash' ? 'px-3 py-1 rounded-full text-xs font-bold bg-white text-indigo-700 shadow-sm' : 'px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-sm';
+        
+        document.getElementById('modalTotal').textContent = `₱${currentTotal.toFixed(2)}`;
+        document.getElementById('cashInput').value = '';
+        document.getElementById('borrowerInput').value = '';
+        
+        if (type === 'cash') {
+            document.getElementById('cashInputGroup').classList.remove('hidden');
+            document.getElementById('changeCard').classList.remove('hidden');
+            document.getElementById('utangInputGroup').classList.add('hidden');
+            document.getElementById('confirmCheckoutBtn').disabled = true;
+        } else {
+            document.getElementById('cashInputGroup').classList.add('hidden');
+            document.getElementById('changeCard').classList.add('hidden');
+            document.getElementById('utangInputGroup').classList.remove('hidden');
+            document.getElementById('confirmCheckoutBtn').disabled = false;
+        }
+        
+        const modal = document.getElementById('checkoutModal');
+        const content = document.getElementById('checkoutModalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+            if (type === 'cash') {
+                document.getElementById('cashInput').focus();
+            } else {
+                document.getElementById('borrowerInput').focus();
+            }
+        }, 10);
+    }
+
+    function quickCash(amount) {
+        playAudio('click');
+        document.getElementById('cashInput').value = amount;
+        calculateChange();
+    }
+
+    function calculateChange() {
+        const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+        const change = cash - currentTotal;
+        const changeEl = document.getElementById('changeAmount');
+        const btn = document.getElementById('confirmCheckoutBtn');
+        
+        if (change >= 0) {
+            changeEl.textContent = `₱${change.toFixed(2)}`;
+            changeEl.className = 'text-xl font-bold text-emerald-700';
+            btn.disabled = false;
+        } else {
+            changeEl.textContent = `Short (₱${Math.abs(change).toFixed(2)})`;
+            changeEl.className = 'text-xl font-bold text-rose-600';
+            btn.disabled = true;
+        }
+    }
+
+    function closeCheckoutModal() {
+        playAudio('click');
+        const modal = document.getElementById('checkoutModal');
+        const content = document.getElementById('checkoutModalContent');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    async function processCheckout() {
+        const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+        const borrower = document.getElementById('borrowerInput').value;
+        const btn = document.getElementById('confirmCheckoutBtn');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Saving...';
+        lucide.createIcons();
+        
+        try {
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cart: cart,
+                    payment_type: activeCheckoutType,
+                    borrower_name: borrower,
+                    subtotal: currentSubtotal,
+                    discount: currentDiscount,
+                    total: currentTotal,
+                    cash: cash
+                })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                playAudio('success');
+                closeCheckoutModal();
+                showReceipt(currentSubtotal, currentDiscount, currentTotal, cash, data.change, activeCheckoutType, borrower);
+                cart = [];
+                lastAddedId = null;
+                document.getElementById('discountInput').value = 0;
+                updateCartUI();
+                fetchProducts();
+            } else {
+                alert(data.message || 'Error processing transaction');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirm Sale';
+                lucide.createIcons();
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Connection error');
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirm Sale';
+            lucide.createIcons();
+        }
+    }
+
+    function showReceipt(subtotal, discount, total, cash, change, type, borrower) {
+        document.getElementById('receiptTimestamp').textContent = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        document.getElementById('receiptSubtotal').textContent = `₱${subtotal.toFixed(2)}`;
+        document.getElementById('receiptDiscount').textContent = `-₱${discount.toFixed(2)}`;
+        document.getElementById('receiptTotal').textContent = `₱${total.toFixed(2)}`;
+        
+        const list = document.getElementById('receiptItemsList');
+        list.innerHTML = '';
+        cart.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center text-gray-700';
+            div.innerHTML = `
+                <span class="truncate pr-2">${item.name} x${item.qty}</span>
+                <span class="font-bold">₱${(item.price * item.qty).toFixed(2)}</span>
+            `;
+            list.appendChild(div);
+        });
+
+        if (type === 'cash') {
+            document.getElementById('receiptCashRow').classList.remove('hidden');
+            document.getElementById('receiptChangeRow').classList.remove('hidden');
+            document.getElementById('receiptBorrowerRow').classList.add('hidden');
+            document.getElementById('receiptCash').textContent = `₱${cash.toFixed(2)}`;
+            document.getElementById('receiptChange').textContent = `₱${change.toFixed(2)}`;
+        } else {
+            document.getElementById('receiptCashRow').classList.add('hidden');
+            document.getElementById('receiptChangeRow').classList.add('hidden');
+            document.getElementById('receiptBorrowerRow').classList.remove('hidden');
+            document.getElementById('receiptBorrower').textContent = borrower;
+        }
+
+        const modal = document.getElementById('receiptModal');
+        const content = document.getElementById('receiptModalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeReceiptModal() {
+        playAudio('click');
+        const modal = document.getElementById('receiptModal');
+        const content = document.getElementById('receiptModalContent');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+</script>
+<style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+{% endblock %}

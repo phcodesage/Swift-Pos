@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Inventory Stocks</h1>
+            <p class="text-gray-500 mt-1">Manage your products and stock levels</p>
+        </div>
+        <button onclick="openModal('addModal')" class="flex items-center gap-2 bg-primary hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5">
+            <i data-lucide="plus" class="w-5 h-5"></i> Add Product
+        </button>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+            <div class="relative flex-1 max-w-md">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="search" class="text-gray-400 w-5 h-5"></i>
+                </div>
+                <input type="text" id="tableSearch" 
+                    class="pl-10 w-full rounded-xl border-gray-200 bg-white border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 transition-all text-sm"
+                    placeholder="Search inventory..." onkeyup="filterTable()">
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left" id="stocksTable">
+                <thead class="text-xs text-gray-500 uppercase bg-gray-50/50">
+                    <tr>
+                        <th class="px-6 py-4 font-medium">Product</th>
+                        <th class="px-6 py-4 font-medium">Category</th>
+                        <th class="px-6 py-4 font-medium">Capital</th>
+                        <th class="px-6 py-4 font-medium">Price</th>
+                        <th class="px-6 py-4 font-medium text-right">Stock</th>
+                        <th class="px-6 py-4 font-medium text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for p in products %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-gray-900 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 font-bold">{{ p.name[0].upper() }}</div>
+                            <span class="product-name">{{ p.name }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-500">{{ p.category }}</td>
+                        <td class="px-6 py-4 text-gray-500">₱{{ "%.2f"|format(p.capital) }}</td>
+                        <td class="px-6 py-4 font-medium text-gray-700">₱{{ "%.2f"|format(p.price) }}</td>
+                        <td class="px-6 py-4 text-right">
+                            <span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-bold {{ 'bg-red-100 text-red-800' if p.stock <= 0 else 'bg-green-100 text-green-800' }}">
+                                {{ p.stock }} {{ p.unit }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick='openEditModal({{ p.id }}, {{ p.name|tojson }}, {{ p.capital }}, {{ p.price }}, {{ p.stock }}, {{ p.category|tojson }}, {{ p.unit|tojson }})' class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openDeleteModal({{ p.id }}, {{ p.name|tojson }})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            <div class="flex flex-col items-center justify-center">
+                                <i data-lucide="package-open" class="w-12 h-12 mb-4 text-gray-300"></i>
+                                <p>No products in inventory. Add one to get started.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form Component (Used for Add and Edit) -->
+<div id="productModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="productModalContent">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+            <h3 class="text-xl font-bold text-gray-800" id="modalTitle">Add Product</h3>
+            <button onclick="closeModal('productModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <form method="POST" action="{{ url_for('stocks') }}" class="p-6 space-y-4">
+            <input type="hidden" name="action" id="formAction" value="add">
+            <input type="hidden" name="id" id="productId">
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                <input type="text" name="name" id="productName" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input type="text" name="category" id="productCategory" list="categoryList" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all" placeholder="e.g. Grocery">
+                    <datalist id="categoryList">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                    <select name="unit" id="productUnit" class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all appearance-none">
+                        <option value="pcs">Pieces (pcs)</option>
+                        <option value="Kg">Kilograms (Kg)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Capital (₱)</label>
+                    <input type="number" step="0.01" name="capital" id="productCapital" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Selling Price (₱)</label>
+                    <input type="number" step="0.01" name="price" id="productPrice" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
+                    <input type="number" step="0.01" name="stock" id="productStock" required class="w-full rounded-xl border-gray-300 bg-gray-50 border focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-4 transition-all">
+                </div>
+            </div>
+
+            <div class="pt-4 flex gap-3 mt-6">
+                <button type="button" onclick="closeModal('productModal')" class="flex-1 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="submit" class="flex-1 py-3 rounded-xl shadow-md text-white font-bold bg-primary hover:bg-indigo-700 transition-all">Save Product</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="deleteModalContent">
+        <div class="p-6 text-center pt-8">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">Delete Product?</h3>
+            <p class="text-gray-500 mt-2 text-sm" id="deleteProductName">Are you sure you want to delete this product? This action cannot be undone.</p>
+        </div>
+        <form method="POST" action="{{ url_for('stocks') }}" class="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" id="deleteProductId">
+            <button type="button" onclick="closeModal('deleteModal')" class="flex-1 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+            <button type="submit" class="flex-1 py-3 rounded-xl shadow-md text-white font-bold bg-red-600 hover:bg-red-700 transition-all">Delete</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterTable() {
+        const input = document.getElementById('tableSearch').value.toLowerCase();
+        const rows = document.getElementById('stocksTable').getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        
+        for (let i = 0; i < rows.length; i++) {
+            const nameCol = rows[i].querySelector('.product-name');
+            if (nameCol) {
+                const name = nameCol.textContent || nameCol.innerText;
+                if (name.toLowerCase().indexOf(input) > -1) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    }
+
+    function openModal(id) {
+        if(id === 'addModal') {
+            document.getElementById('modalTitle').textContent = 'Add New Product';
+            document.getElementById('formAction').value = 'add';
+            document.getElementById('productId').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('productCategory').value = '';
+            document.getElementById('productUnit').value = 'pcs';
+            document.getElementById('productCapital').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productStock').value = '';
+            id = 'productModal';
+        }
+        
+        const modal = document.getElementById(id);
+        const content = document.getElementById(id + 'Content');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        const content = document.getElementById(id + 'Content');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    function openEditModal(id, name, capital, price, stock, category, unit) {
+        document.getElementById('modalTitle').textContent = 'Edit Product';
+        document.getElementById('formAction').value = 'edit';
+        document.getElementById('productId').value = id;
+        document.getElementById('productName').value = name;
+        document.getElementById('productCategory').value = category;
+        document.getElementById('productUnit').value = unit;
+        document.getElementById('productCapital').value = capital;
+        document.getElementById('productPrice').value = price;
+        document.getElementById('productStock').value = stock;
+        
+        openModal('productModal');
+    }
+
+    function openDeleteModal(id, name) {
+        document.getElementById('deleteProductId').value = id;
+        document.getElementById('deleteProductName').textContent = `Are you sure you want to delete "${name}"?`;
+        openModal('deleteModal');
+    }
+</script>
+{% endblock %}

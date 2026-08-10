@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
+                <div class="p-2 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/20">
+                    <i data-lucide="book-open" class="w-6 h-6"></i>
+                </div>
+                Lending / Utang Ledger
+            </h1>
+            <p class="text-xs text-gray-500 mt-1">Track customer credit, partial payments, and balances</p>
+        </div>
+    </div>
+
+    <!-- Utang Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {% set unpaid_txs = utang_list | selectattr('is_paid', 'equalto', False) | list %}
+        {% set total_unpaid_balance = unpaid_txs | map(attribute='total_amount') | sum - unpaid_txs | map(attribute='paid_amount') | sum %}
+        
+        <div class="bg-white rounded-2xl p-5 border border-amber-100 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-700">Total Outstanding Credit</span>
+                <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-black text-amber-900 mt-2">₱{{ "%.2f"|format(total_unpaid_balance) }}</h3>
+            <p class="text-[11px] text-amber-600 mt-1">{{ unpaid_txs | length }} active unpaid records</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Total Borrowers</span>
+                <div class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-black text-gray-800 mt-2">{{ utang_list | map(attribute='borrower_name') | unique | list | length }}</h3>
+            <p class="text-[11px] text-gray-400 mt-1">Registered accounts</p>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Fully Settled</span>
+                <div class="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-black text-emerald-800 mt-2">{{ utang_list | selectattr('is_paid', 'equalto', True) | list | length }}</h3>
+            <p class="text-[11px] text-emerald-600 mt-1">Paid credit accounts</p>
+        </div>
+    </div>
+
+    <!-- Utang List Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gray-50/70 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-gray-800">Utang Records</h3>
+            <input type="text" id="searchUtang" onkeyup="filterUtang()" placeholder="Search borrower name..." class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs w-64 focus:outline-none focus:border-primary">
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left" id="utangTable">
+                <thead class="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-5 py-3.5 font-bold">Borrower Name</th>
+                        <th class="px-5 py-3.5 font-bold">Date Borrowed</th>
+                        <th class="px-5 py-3.5 font-bold">Total Credit</th>
+                        <th class="px-5 py-3.5 font-bold">Amount Paid</th>
+                        <th class="px-5 py-3.5 font-bold">Balance Due</th>
+                        <th class="px-5 py-3.5 font-bold">Status</th>
+                        <th class="px-5 py-3.5 font-bold text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for t in utang_list %}
+                    {% set balance = t.total_amount - t.paid_amount %}
+                    <tr class="hover:bg-gray-50/80 transition-colors utang-row">
+                        <td class="px-5 py-4 font-bold text-gray-900 flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-black">
+                                {{ t.borrower_name[0].upper() if t.borrower_name else 'U' }}
+                            </div>
+                            <span class="borrower-name">{{ t.borrower_name or 'Anonymous' }}</span>
+                        </td>
+                        <td class="px-5 py-4 text-gray-500">{{ t.date_created.strftime('%b %d, %Y %I:%M %p') }}</td>
+                        <td class="px-5 py-4 font-bold text-gray-800">₱{{ "%.2f"|format(t.total_amount) }}</td>
+                        <td class="px-5 py-4 text-emerald-600 font-semibold">₱{{ "%.2f"|format(t.paid_amount) }}</td>
+                        <td class="px-5 py-4 font-extrabold text-amber-700">₱{{ "%.2f"|format(balance) }}</td>
+                        <td class="px-5 py-4">
+                            {% if t.is_paid %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Fully Paid
+                            </span>
+                            {% elif t.paid_amount > 0 %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                Partial Paid
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                Unpaid
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-center">
+                            {% if not t.is_paid %}
+                            <button onclick="openPayModal({{ t.id }}, '{{ t.borrower_name }}', {{ balance }})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all">
+                                Record Payment
+                            </button>
+                            {% else %}
+                            <span class="text-gray-400 text-xs">Cleared</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-400">
+                            <i data-lucide="book-check" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i>
+                            <p>No credit / utang records found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pay Utang Modal -->
+<div id="payModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="payModalContent">
+        <div class="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+            <div>
+                <h3 class="text-base font-bold text-gray-800">Record Utang Payment</h3>
+                <p class="text-xs text-gray-500" id="payBorrowerName"></p>
+            </div>
+            <button onclick="closePayModal()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('lending') }}" class="p-5 space-y-4">
+            <input type="hidden" name="action" value="pay">
+            <input type="hidden" name="transaction_id" id="payTxId">
+
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 flex justify-between items-center">
+                <span class="text-xs font-bold text-amber-800">Remaining Balance</span>
+                <span class="text-lg font-black text-amber-900" id="payBalanceDue">₱0.00</span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Amount Paid (₱)</label>
+                <input type="number" step="0.01" name="amount" id="payAmountInput" required
+                    class="w-full rounded-xl border-gray-300 bg-gray-50 border-2 focus:border-emerald-500 focus:bg-white py-2.5 px-3 text-lg font-bold">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Notes / Remarks</label>
+                <input type="text" name="notes" placeholder="e.g. Partial cash payment"
+                    class="w-full rounded-xl border-gray-300 bg-gray-50 border py-2 px-3 text-xs">
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closePayModal()" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700">Cancel</button>
+                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-700">Save Payment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openPayModal(id, borrower, balance) {
+        document.getElementById('payTxId').value = id;
+        document.getElementById('payBorrowerName').textContent = `Borrower: ${borrower}`;
+        document.getElementById('payBalanceDue').textContent = `₱${balance.toFixed(2)}`;
+        document.getElementById('payAmountInput').value = balance.toFixed(2);
+        
+        const modal = document.getElementById('payModal');
+        const content = document.getElementById('payModalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closePayModal() {
+        const modal = document.getElementById('payModal');
+        const content = document.getElementById('payModalContent');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    function filterUtang() {
+        const query = document.getElementById('searchUtang').value.toLowerCase();
+        document.querySelectorAll('.utang-row').forEach(row => {
+            const name = row.querySelector('.borrower-name').textContent.toLowerCase();
+            row.style.display = name.includes(query) ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}

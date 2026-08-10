@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
+                <div class="p-2 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-500/20">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+                User & Cashier Accounts
+            </h1>
+            <p class="text-xs text-gray-500 mt-1">Manage staff user credentials and system role permissions</p>
+        </div>
+
+        <button onclick="openAddUserModal()" class="px-5 py-2.5 bg-primary hover:bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Add New Account
+        </button>
+    </div>
+
+    <!-- Accounts Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gray-50/70">
+            <h3 class="text-sm font-bold text-gray-800">System Users List</h3>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+                <thead class="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-5 py-3.5 font-bold">User</th>
+                        <th class="px-5 py-3.5 font-bold">Username</th>
+                        <th class="px-5 py-3.5 font-bold">System Role</th>
+                        <th class="px-5 py-3.5 font-bold text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for u in users %}
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="px-5 py-4 font-bold text-gray-900 flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black">
+                                {{ u.username[0].upper() }}
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-gray-900">{{ u.full_name or u.username }}</p>
+                                <p class="text-[10px] text-gray-400">ID #{{ u.id }}</p>
+                            </div>
+                        </td>
+                        <td class="px-5 py-4 font-semibold text-gray-700">@{{ u.username }}</td>
+                        <td class="px-5 py-4">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ 'bg-amber-100 text-amber-800 border border-amber-200' if u.role == 'admin' else 'bg-blue-100 text-blue-800 border border-blue-200' }}">
+                                {{ u.role }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-4 text-center">
+                            {% if u.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('users') }}" onsubmit="return confirm('Delete user account @{{ u.username }}?');">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="{{ u.id }}">
+                                <button type="submit" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Delete User">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-[10px] text-gray-400 italic">Current Session</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div id="addUserModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="addUserModalContent">
+        <div class="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+            <h3 class="text-base font-bold text-gray-800">Create Staff Account</h3>
+            <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('users') }}" class="p-5 space-y-4">
+            <input type="hidden" name="action" value="add">
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Full Name</label>
+                <input type="text" name="full_name" placeholder="e.g. Maria Santos" required
+                    class="w-full rounded-xl border-gray-300 bg-gray-50 border py-2.5 px-3 text-xs font-semibold">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Username</label>
+                <input type="text" name="username" placeholder="e.g. maria" required
+                    class="w-full rounded-xl border-gray-300 bg-gray-50 border py-2.5 px-3 text-xs font-semibold">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
+                <input type="password" name="password" placeholder="••••••••" required
+                    class="w-full rounded-xl border-gray-300 bg-gray-50 border py-2.5 px-3 text-xs font-semibold">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Account Role</label>
+                <select name="role" class="w-full rounded-xl border-gray-300 bg-gray-50 border py-2.5 px-3 text-xs font-semibold">
+                    <option value="cashier">Cashier (POS & Receipts only)</option>
+                    <option value="admin">Admin (Full Access & Management)</option>
+                </select>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeAddUserModal()" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700">Cancel</button>
+                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-primary text-white font-bold text-xs shadow-md hover:bg-indigo-600">Create Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openAddUserModal() {
+        const modal = document.getElementById('addUserModal');
+        const content = document.getElementById('addUserModalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeAddUserModal() {
+        const modal = document.getElementById('addUserModal');
+        const content = document.getElementById('addUserModalContent');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+</script>
+{% endblock %}

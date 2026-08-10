@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+venv/
+.venv/
+ENV/
+env/
+
+# Databases
+instance/
+*.db
+*.sqlite
+
+# OS generated files
+.DS_Store
+
+# Vercel
+.vercel/
